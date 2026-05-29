@@ -1,0 +1,27 @@
+# Auto-detect text files and normalize to LF
+* text=auto eol=lf
+
+# Explicitly declare file types
+*.bicep text eol=lf
+*.json text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.psm1 text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary files (no normalization)
+*.zip binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.gz binary
+*.tar binary
+*.eml binary
+*.drawio binary
+*.drawio.png binary

@@ -1,0 +1,9 @@
+{
+  "queueName": "workflow-queue",
+  "eventType": "approval.responded",
+  "workflowInstanceId": "next-communicator-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a01",
+  "workflowPrefix": "next-communicator-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a01",
+  "checkpointId": "REPLACE_WITH_CHECKPOINT_ID_FROM_HITL_QUEUE",
+  "approvalType": "email",
+  "approvalStatus": "approved"
+}

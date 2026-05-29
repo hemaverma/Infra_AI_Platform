@@ -1,0 +1,26 @@
+{
+  "plugins": {
+    "md013": {
+      "line_length": 400,
+      "code_block_line_length": 250,
+      "heading_line_length": 250,
+      "stern": true
+    },
+    "md004": {"style": "dash"},
+    "md022": {"enabled": true},
+    "md029": {"style": "one"},
+    "md007": {"indent": 2},
+    "md033": {"enabled": false},
+    "md024": {"enabled": false},
+    "md041": {"enabled": false},
+    "md046": {"style": "fenced"}
+  },
+  "default_overrides": {
+    "code-block-style": "fenced"
+  },
+  "extensions": {
+    "front-matter": {
+      "enabled": true
+    }
+  }
+}

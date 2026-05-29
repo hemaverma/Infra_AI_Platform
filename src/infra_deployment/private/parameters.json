@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "baseName": { "value": "next" },
+    "uniquePrefix": { "value": "" },
+    "location": { "value": "westus3" },
+    "tags": {
+      "value": {
+        "project": "NExT",
+        "environment": "poc",
+        "team": "next",
+        "SecurityControl": "Ignore",
+        "security-exception": "shared-key-required-for-aci"
+      }
+    },
+    "deployContainerApp": { "value": true },
+    "deployLogicApp": { "value": true },
+    "deployServiceBus": { "value": true },
+    "deployStorageQueues": { "value": false },
+    "deployCosmosDb": { "value": true },
+    "deployOpenAi": { "value": true },
+    "deployPostgres": { "value": true },
+    "vnetAddressPrefix": { "value": "10.0.0.0/16" },
+    "vpnClientAddressPool": { "value": "172.16.0.0/24" },
+    "openAiDeploymentName": { "value": "gpt-5" },
+    "openAiModelName": { "value": "gpt-5" },
+    "openAiModelVersion": { "value": "2025-08-07" },
+    "openAiCapacity": { "value": 30 },
+    "cosmosDbDatabaseName": { "value": "vendor-email-response" },
+    "cosmosDbContainerName": { "value": "workflow-checkpoints" },
+    "containerImage": { "value": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest" },
+    "sharedMailboxAddress": { "value": "" },
+    "teamsGroupId": { "value": "" },
+    "teamsChannelId": { "value": "" },
+    "notificationRecipientEmail": { "value": "" },
+    "setupScriptBranch": { "value": "main" },
+    "vpnAadTenant": { "value": "https://login.microsoftonline.com/8b71fafd-85d7-4793-b643-3dd778c7d9d5" },
+    "vpnAadAudience": { "value": "c632b3df-fb67-4d84-bdcf-b95ad541b5c8" },
+    "vpnAadIssuer": { "value": "https://sts.windows.net/8b71fafd-85d7-4793-b643-3dd778c7d9d5/" }
+  }
+}

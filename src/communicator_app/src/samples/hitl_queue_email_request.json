@@ -1,0 +1,10 @@
+{
+  "queueName": "hitl-queue",
+  "eventType": "email-approval.requested",
+  "workflowInstanceId": "next-communicator-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a01",
+  "workflowPrefix": "next-communicator-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a01",
+  "checkpointId": "<minted-by-checkpoint-storage>",
+  "internetMessageId": "<MSG-LAX-NYC-7821@vendor.example>",
+  "approvalType": "email",
+  "adaptiveCardMessage": "**Subject:** Re: Maintenance: LAX-NYC circuit\n\n---\n\nAcknowledged receipt of the maintenance notice for ticket CHG-7821. We will review against downstream change controls and follow up if any adjustments are required."
+}

@@ -1,0 +1,49 @@
+# Infrastructure Test Configuration
+# Override with environment variables prefixed INFRA_TEST_
+
+# Set to 'auto' to derive from src/infra_deployment/<variant>/parameters.json (baseName + uniquePrefix)
+# Or set explicitly (e.g., 'next5') to target a specific deployment
+base_name: auto
+deployment_variant: private  # public | private
+location: westus3
+ai_location: westus3
+
+# Timeouts
+timeout_seconds: 30
+retry_count: 3
+retry_delay_seconds: 5
+
+# Resource naming patterns
+resources:
+  managed_identity: "{base_name}-id"
+  log_analytics: "{base_name}-la"
+  app_insights: "{base_name}-ai"
+  key_vault: "{base_name}-kv"
+  storage_account: "{base_name}st"
+  service_bus: "{base_name}-servicebus"
+  cosmos_db: "{base_name}-cosmos"
+  postgresql: "{base_name}-pg"
+  openai: "{base_name}-oai"
+  document_intelligence: "{base_name}-di"
+  content_safety: "{base_name}-csafety"
+  function_app: "{base_name}-func"
+  logic_app: "{base_name}-logic"
+  container_app: "{base_name}-communicator"
+  container_registry: "{base_name}acr"
+  vpn_gateway: "{base_name}-vpn-gw"
+
+# Expected configurations
+expected:
+  cosmos_database: vendor-email-response  # Source: src/infra_deployment/modules/cosmos.bicep param databaseName
+  cosmos_container: workflow-checkpoints  # Source: src/infra_deployment/modules/cosmos.bicep param containerName
+  postgres_database: next-db  # Source: src/infra_deployment/modules/postgresql.bicep param databaseName
+  storage_container: email-staging  # Source: src/infra_deployment/modules/storage.bicep param containerName
+  storage_queues:  # Source: src/infra_deployment/modules/storage.bicep param queueNames
+    - workflow-queue
+    - hitl-queue
+  service_bus_queues:  # Source: src/infra_deployment/modules/service-bus.bicep param queueNames
+    - workflow-queue
+    - hitl-queue
+  openai_deployment: gpt-5  # Source: src/infra_deployment/modules/ai-foundry.bicep param deploymentName
+  function_app_runtime: python  # Source: src/infra_deployment/modules/function-app.bicep param runtime
+  function_app_python_version: "3.10"  # Source: src/infra_deployment/modules/function-app.bicep param pythonVersion

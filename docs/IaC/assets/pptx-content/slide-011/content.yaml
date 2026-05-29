@@ -1,0 +1,89 @@
+slide: 11
+title: "Deployment Variants"
+section: "Decisions"
+layout: "content"
+
+elements:
+  - type: shape
+    shape: rectangle
+    left: 0
+    top: 0
+    width: 13.333
+    height: 0.08
+    fill: "#0078D4"
+
+  - type: textbox
+    left: 0.8
+    top: 0.4
+    width: 10.0
+    height: 0.8
+    text: "Deployment Variants"
+    font: "Segoe UI"
+    font_size: 32
+    font_color: "#1A1A2E"
+    font_bold: true
+    alignment: left
+
+  - type: table
+    left: 0.8
+    top: 1.5
+    width: 11.5
+    height: 4.8
+    columns:
+      - width: 3.5
+      - width: 4.0
+      - width: 4.0
+    rows:
+      - cells:
+          - text: "Aspect"
+            font_bold: true
+            fill: "#0078D4"
+            font_color: "#F8F8FC"
+          - text: "Private Variant"
+            font_bold: true
+            fill: "#0078D4"
+            font_color: "#F8F8FC"
+          - text: "Public Variant"
+            font_bold: true
+            fill: "#0078D4"
+            font_color: "#F8F8FC"
+      - cells:
+          - text: "Network Isolation"
+            font_bold: true
+          - text: "Full VNet + Private Endpoints"
+          - text: "Public endpoints"
+      - cells:
+          - text: "Monthly Network Cost"
+            font_bold: true
+          - text: "~$130 (VPN + NAT)"
+          - text: "$0"
+      - cells:
+          - text: "Security Model"
+            font_bold: true
+          - text: "Network + Identity"
+          - text: "Identity only"
+      - cells:
+          - text: "Developer Access"
+            font_bold: true
+          - text: "VPN required"
+          - text: "Direct"
+      - cells:
+          - text: "Use Case"
+            font_bold: true
+          - text: "Production / sensitive data"
+            font_color: "#0078D4"
+          - text: "PoC / development"
+            font_color: "#10B981"
+    first_row: true
+    horz_banding: true
+
+  - type: textbox
+    left: 0.8
+    top: 6.6
+    width: 11.5
+    height: 0.5
+    text: "Both variants use identical Bicep modules - only networking layer differs"
+    font: "Segoe UI"
+    font_size: 12
+    font_color: "#6B7280"
+    alignment: center

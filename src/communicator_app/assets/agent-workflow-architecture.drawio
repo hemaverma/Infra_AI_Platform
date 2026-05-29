@@ -1,0 +1,36 @@
+<mxfile host="app.diagrams.net" modified="2026-06-16" agent="drawio" version="24.0">
+  <diagram name="Agent Workflow Architecture" id="agent-arch-001">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- Service Bus -->
+        <mxCell id="sb" value="Azure Service Bus" style="swimlane;startSize=20;" vertex="1" parent="1"><mxGeometry x="20" y="80" width="160" height="120" as="geometry"/></mxCell>
+        <mxCell id="wq" value="workflow-queue" style="shape=cylinder3;whiteSpace=wrap;" vertex="1" parent="sb"><mxGeometry x="20" y="35" width="120" height="35" as="geometry"/></mxCell>
+        <mxCell id="hq" value="hitl-queue" style="shape=cylinder3;whiteSpace=wrap;" vertex="1" parent="sb"><mxGeometry x="20" y="75" width="120" height="35" as="geometry"/></mxCell>
+        <!-- App -->
+        <mxCell id="app" value="Agent Workflow (this app)" style="swimlane;startSize=20;" vertex="1" parent="1"><mxGeometry x="220" y="40" width="450" height="200" as="geometry"/></mxCell>
+        <mxCell id="t" value="workflow_queue_consumer&#xa;SB trigger / HTTP twin" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="app"><mxGeometry x="20" y="40" width="140" height="45" as="geometry"/></mxCell>
+        <mxCell id="dispatch" value="eventType?" style="rhombus;whiteSpace=wrap;" vertex="1" parent="app"><mxGeometry x="180" y="40" width="80" height="50" as="geometry"/></mxCell>
+        <mxCell id="runstart" value="build_workflow&#xa;+ run stream" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="app"><mxGeometry x="290" y="30" width="110" height="35" as="geometry"/></mxCell>
+        <mxCell id="runresume" value="rehydrate +&#xa;responses=…" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="app"><mxGeometry x="290" y="75" width="110" height="35" as="geometry"/></mxCell>
+        <mxCell id="pending" value="pending&#xa;request_info" style="shape=cylinder3;whiteSpace=wrap;" vertex="1" parent="app"><mxGeometry x="180" y="120" width="100" height="40" as="geometry"/></mxCell>
+        <mxCell id="pub" value="publish 1..N envelopes" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="app"><mxGeometry x="310" y="125" width="120" height="35" as="geometry"/></mxCell>
+        <!-- HITL -->
+        <mxCell id="hitl" value="HITL Workflow (separate)" style="swimlane;startSize=20;" vertex="1" parent="1"><mxGeometry x="720" y="80" width="200" height="80" as="geometry"/></mxCell>
+        <mxCell id="h" value="Logic Apps + Teams&#xa;Adaptive Card" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="hitl"><mxGeometry x="20" y="30" width="160" height="40" as="geometry"/></mxCell>
+        <!-- Edges -->
+        <mxCell id="ea1" value="email.received&#xa;approval.responded" edge="1" source="wq" target="t" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ea2" edge="1" source="t" target="dispatch" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ea3" value="email.received" edge="1" source="dispatch" target="runstart" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ea4" value="approval.responded" edge="1" source="dispatch" target="runresume" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ea5" edge="1" source="runstart" target="pending" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ea6" edge="1" source="runresume" target="pending" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ea7" edge="1" source="pending" target="pub" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ea8" value="approval.requested" edge="1" source="pub" target="hq" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ea9" edge="1" source="hq" target="h" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ea10" value="approval.responded" edge="1" source="h" target="wq" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

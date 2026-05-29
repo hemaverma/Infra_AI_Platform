@@ -1,0 +1,9 @@
+{
+  "queueName": "workflow-queue",
+  "eventType": "email.received",
+  "workflowInstanceId": "next-communicator-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a01",
+  "internetMessageId": "<LOGIC_APP_INTERNET_MESSAGE_ID>@vendor.example",
+  "storagePrefix": "next-communicator-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a01",
+  "checkpointId": null,
+  "receivedAt": "2026-05-07T16:49:51Z"
+}

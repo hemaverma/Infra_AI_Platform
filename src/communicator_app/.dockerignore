@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+
+# Local settings (should use environment variables in container)
+local.settings.json
+*.local.*
+
+# Documentation
+README.md
+*.md
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Azure Functions
+.azure/
+.python_packages/
+
+# Jupyter
+*.ipynb
+.ipynb_checkpoints/
+
+# Agent configs (if containing sensitive data)
+# Uncomment if needed:
+# src/agent_app/agent_configs/*.json
+
+# Other
+*.log
+.env
+.env.*

@@ -1,0 +1,387 @@
+name: Security Scan
+
+on:
+  pull_request:
+    branches: ["**"]
+  push:
+    branches: ["main", "develop"]
+  schedule:
+    - cron: "21 3 * * 1"
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  pull-requests: write
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze (Python)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["python"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        id: analyze
+        uses: github/codeql-action/analyze@v3
+
+      - name: Collect CodeQL SARIF results
+        if: always()
+        run: |
+          mkdir -p codeql-results
+          if [ -d ../results ]; then
+            find ../results -maxdepth 1 -name '*.sarif' -exec cp {} codeql-results/ \;
+          fi
+
+      - name: Upload CodeQL SARIF artifact
+        if: always() && hashFiles('codeql-results/*.sarif') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif
+          path: codeql-results/*.sarif
+
+      - name: Extract CodeQL result counts
+        if: always()
+        id: codeql_counts
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          import os
+
+          sarif_paths = sorted(glob.glob("codeql-results/*.sarif"))
+          result_count = 0
+          rule_ids = set()
+          level_counts = {"error": 0, "warning": 0, "note": 0, "none": 0}
+
+          for sarif_path in sarif_paths:
+              with open(sarif_path, "r", encoding="utf-8") as sarif_file:
+                  content = json.load(sarif_file)
+
+              for run in content.get("runs", []):
+                  default_levels = {}
+                  tool = run.get("tool", {})
+                  driver = tool.get("driver", {})
+                  for rule in driver.get("rules", []) or []:
+                      rule_id = rule.get("id")
+                      default_level = rule.get("defaultConfiguration", {}).get("level")
+                      if rule_id and default_level:
+                          default_levels[rule_id] = default_level
+
+                  for result in run.get("results", []):
+                      result_count += 1
+                      rule_id = result.get("ruleId") or result.get("rule", {}).get("id")
+                      if rule_id:
+                          rule_ids.add(rule_id)
+
+                      level = result.get("level") or default_levels.get(rule_id) or "none"
+                      if level not in level_counts:
+                          level = "none"
+                      level_counts[level] += 1
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output_file:
+              output_file.write(f"sarif_files={len(sarif_paths)}\n")
+              output_file.write(f"results={result_count}\n")
+              output_file.write(f"rules={len(rule_ids)}\n")
+              output_file.write(f"errors={level_counts['error']}\n")
+              output_file.write(f"warnings={level_counts['warning']}\n")
+              output_file.write(f"notes={level_counts['note']}\n")
+              output_file.write(f"none={level_counts['none']}\n")
+          PY
+
+      - name: Add CodeQL summary
+        if: always()
+        env:
+          ANALYZE_OUTCOME: ${{ steps.analyze.outcome }}
+          SARIF_FILES: ${{ steps.codeql_counts.outputs.sarif_files }}
+          RESULT_COUNT: ${{ steps.codeql_counts.outputs.results }}
+          RULE_COUNT: ${{ steps.codeql_counts.outputs.rules }}
+          ERROR_COUNT: ${{ steps.codeql_counts.outputs.errors }}
+          WARNING_COUNT: ${{ steps.codeql_counts.outputs.warnings }}
+          NOTE_COUNT: ${{ steps.codeql_counts.outputs.notes }}
+          NONE_COUNT: ${{ steps.codeql_counts.outputs.none }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          {
+            echo "## CodeQL Report"
+            echo ""
+            if [ "$ANALYZE_OUTCOME" = "success" ]; then
+              echo "- Status: :white_check_mark: Completed"
+            else
+              echo "- Status: :x: Failed"
+            fi
+            echo "- SARIF files: ${SARIF_FILES:-0}"
+            echo "- Results: ${RESULT_COUNT:-0}"
+            echo "- Unique rules: ${RULE_COUNT:-0}"
+            echo ""
+            echo "| Errors | Warnings | Notes | Other |"
+            echo "|--------|----------|-------|-------|"
+            echo "| ${ERROR_COUNT:-0} | ${WARNING_COUNT:-0} | ${NOTE_COUNT:-0} | ${NONE_COUNT:-0} |"
+            echo ""
+            echo "- Code scanning alerts: ${SERVER_URL}/${REPO}/security/code-scanning"
+            if [ -n "$PR_NUMBER" ]; then
+              echo "- PR checks: ${SERVER_URL}/${REPO}/pull/${PR_NUMBER}/checks"
+            fi
+            if ls codeql-results/*.sarif >/dev/null 2>&1; then
+              echo "- SARIF artifact: download the 'codeql-sarif' artifact from this workflow run."
+            else
+              echo "- SARIF artifact: not found in this run."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post CodeQL summary on PR page
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
+        continue-on-error: true
+        uses: actions/github-script@v7
+        env:
+          ANALYZE_OUTCOME: ${{ steps.analyze.outcome }}
+          SARIF_FILES: ${{ steps.codeql_counts.outputs.sarif_files }}
+          RESULT_COUNT: ${{ steps.codeql_counts.outputs.results }}
+          RULE_COUNT: ${{ steps.codeql_counts.outputs.rules }}
+          ERROR_COUNT: ${{ steps.codeql_counts.outputs.errors }}
+          WARNING_COUNT: ${{ steps.codeql_counts.outputs.warnings }}
+          NOTE_COUNT: ${{ steps.codeql_counts.outputs.notes }}
+          NONE_COUNT: ${{ steps.codeql_counts.outputs.none }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SERVER_URL: ${{ github.server_url }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const marker = '<!-- pr-codeql-comment -->';
+            const statusLine = process.env.ANALYZE_OUTCOME === 'success'
+              ? '- Status: ✅ Completed'
+              : '- Status: ❌ Failed';
+
+            const body = `${marker}
+            ### CodeQL Scan
+            ${statusLine}
+            - SARIF files: **${process.env.SARIF_FILES || '0'}**
+            - Results: **${process.env.RESULT_COUNT || '0'}**
+            - Unique rules: **${process.env.RULE_COUNT || '0'}**
+
+            | Errors | Warnings | Notes | Other |
+            |--------|----------|-------|-------|
+            | ${process.env.ERROR_COUNT || '0'} | ${process.env.WARNING_COUNT || '0'} | ${process.env.NOTE_COUNT || '0'} | ${process.env.NONE_COUNT || '0'} |
+
+            - Code scanning alerts: ${process.env.SERVER_URL}/${process.env.REPO}/security/code-scanning
+            - PR checks: ${process.env.SERVER_URL}/${process.env.REPO}/pull/${process.env.PR_NUMBER}/checks`;
+
+            try {
+              const { owner, repo } = context.repo;
+              const issue_number = context.issue.number;
+
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number,
+                per_page: 100,
+              });
+
+              const existing = comments.find(
+                (comment) => comment.user.type === 'Bot' && comment.body && comment.body.includes(marker)
+              );
+
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner,
+                  repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number,
+                  body,
+                });
+              }
+            } catch (error) {
+              core.warning(`Could not post CodeQL comment: ${error.message}`);
+            }
+
+  dependency-and-static-scan:
+    name: Dependency and Static Scan
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements-dev.txt
+            requirements.txt
+            src/communicator_app/requirements.txt
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install bandit pip-audit
+
+      - name: Run static security scan (Bandit)
+        id: run_bandit
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          bandit -r src -ll -ii 2>&1 | tee bandit-output.txt
+
+      - name: Run dependency vulnerability scan (pip-audit)
+        id: run_pip_audit
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pip-audit \
+            -r requirements.txt \
+            -r requirements-dev.txt \
+            -r src/communicator_app/requirements.txt 2>&1 | tee pip-audit-output.txt
+
+      - name: Add security summary
+        if: always()
+        env:
+          BANDIT_OUTCOME: ${{ steps.run_bandit.outcome }}
+          PIP_AUDIT_OUTCOME: ${{ steps.run_pip_audit.outcome }}
+        run: |
+          {
+            echo "## Dependency and Static Scan"
+            echo ""
+            if [ "$BANDIT_OUTCOME" = "success" ] && [ "$PIP_AUDIT_OUTCOME" = "success" ]; then
+              echo "- Status: :white_check_mark: Passed"
+            else
+              echo "- Status: :x: Failed"
+            fi
+            echo "- Bandit: ${BANDIT_OUTCOME}"
+            echo "- pip-audit: ${PIP_AUDIT_OUTCOME}"
+
+            if [ "$BANDIT_OUTCOME" != "success" ]; then
+              echo ""
+              echo "### Bandit failure excerpt"
+              echo '```text'
+              if [ -f bandit-output.txt ]; then
+                tail -n 60 bandit-output.txt
+              else
+                echo "No Bandit output captured."
+              fi
+              echo '```'
+            fi
+
+            if [ "$PIP_AUDIT_OUTCOME" != "success" ]; then
+              echo ""
+              echo "### pip-audit failure excerpt"
+              echo '```text'
+              if [ -f pip-audit-output.txt ]; then
+                tail -n 60 pip-audit-output.txt
+              else
+                echo "No pip-audit output captured."
+              fi
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Post security summary on PR page
+        if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false
+        continue-on-error: true
+        uses: actions/github-script@v7
+        env:
+          BANDIT_OUTCOME: ${{ steps.run_bandit.outcome }}
+          PIP_AUDIT_OUTCOME: ${{ steps.run_pip_audit.outcome }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            const marker = '<!-- pr-security-comment -->';
+            const banditPassed = process.env.BANDIT_OUTCOME === 'success';
+            const pipAuditPassed = process.env.PIP_AUDIT_OUTCOME === 'success';
+            const statusLine = banditPassed && pipAuditPassed
+              ? '- Status: ✅ Passed'
+              : '- Status: ❌ Failed';
+
+            let banditBlock = '';
+            if (!banditPassed) {
+              let excerpt = 'No Bandit output captured.';
+              if (fs.existsSync('bandit-output.txt')) {
+                const lines = fs.readFileSync('bandit-output.txt', 'utf8').trimEnd().split(/\r?\n/);
+                excerpt = lines.slice(-80).join('\n') || excerpt;
+              }
+              banditBlock = `\n\n### Bandit failure excerpt\n\`\`\`text\n${excerpt}\n\`\`\``;
+            }
+
+            let pipAuditBlock = '';
+            if (!pipAuditPassed) {
+              let excerpt = 'No pip-audit output captured.';
+              if (fs.existsSync('pip-audit-output.txt')) {
+                const lines = fs.readFileSync('pip-audit-output.txt', 'utf8').trimEnd().split(/\r?\n/);
+                excerpt = lines.slice(-80).join('\n') || excerpt;
+              }
+              pipAuditBlock = `\n\n### pip-audit failure excerpt\n\`\`\`text\n${excerpt}\n\`\`\``;
+            }
+
+            const body = `${marker}
+            ### Dependency and Static Scan
+            ${statusLine}
+            - Bandit: ${banditPassed ? '✅ Passed' : '❌ Failed'}
+            - pip-audit: ${pipAuditPassed ? '✅ Passed' : '❌ Failed'}${banditBlock}${pipAuditBlock}`;
+
+            try {
+              const { owner, repo } = context.repo;
+              const issue_number = context.issue.number;
+
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number,
+                per_page: 100,
+              });
+
+              const existing = comments.find(
+                (comment) => comment.user.type === 'Bot' && comment.body && comment.body.includes(marker)
+              );
+
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner,
+                  repo,
+                  comment_id: existing.id,
+                  body,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number,
+                  body,
+                });
+              }
+            } catch (error) {
+              core.warning(`Could not post security comment: ${error.message}`);
+            }
+
+      - name: Fail job if security scans failed
+        if: steps.run_bandit.outcome == 'failure' || steps.run_pip_audit.outcome == 'failure'
+        run: exit 1

@@ -1,0 +1,35 @@
+<mxfile host="app.diagrams.net" modified="2026-06-16" agent="drawio" version="24.0">
+  <diagram name="Agent Workflow Graph" id="agent-graph-001">
+    <mxGraphModel dx="900" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="a" value="EmailIngest" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="300" y="20" width="140" height="35" as="geometry"/></mxCell>
+        <mxCell id="b" value="EmailValidate" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="300" y="75" width="140" height="35" as="geometry"/></mxCell>
+        <mxCell id="c" value="Preprocess" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="300" y="130" width="140" height="35" as="geometry"/></mxCell>
+        <mxCell id="d" value="ContentSafety" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="300" y="185" width="140" height="35" as="geometry"/></mxCell>
+        <mxCell id="e" value="FieldExtraction&#xa;(Azure OpenAI)" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="300" y="240" width="140" height="35" as="geometry"/></mxCell>
+        <mxCell id="f" value="ValidateNormalize" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="300" y="295" width="140" height="35" as="geometry"/></mxCell>
+        <mxCell id="g" value="HitlOperationsApproval&#xa;(pause #1)" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;" vertex="1" parent="1"><mxGeometry x="300" y="350" width="140" height="40" as="geometry"/></mxCell>
+        <mxCell id="h_node" value="OperationsCommand" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="230" y="420" width="140" height="35" as="geometry"/></mxCell>
+        <mxCell id="l" value="TerminateRejected" style="rounded=1;whiteSpace=wrap;fillColor=#f8cecc;" vertex="1" parent="1"><mxGeometry x="500" y="420" width="140" height="35" as="geometry"/></mxCell>
+        <mxCell id="i" value="DraftReply&#xa;(Azure OpenAI)" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="230" y="480" width="140" height="35" as="geometry"/></mxCell>
+        <mxCell id="j" value="HitlReviewDraft&#xa;(pause #2)" style="rounded=1;whiteSpace=wrap;fillColor=#fff2cc;" vertex="1" parent="1"><mxGeometry x="230" y="540" width="140" height="40" as="geometry"/></mxCell>
+        <mxCell id="k" value="SendReply" style="rounded=1;whiteSpace=wrap;fillColor=#d5e8d4;" vertex="1" parent="1"><mxGeometry x="160" y="610" width="120" height="35" as="geometry"/></mxCell>
+        <!-- Edges -->
+        <mxCell id="eab" edge="1" source="a" target="b" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ebc" edge="1" source="b" target="c" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ecd" edge="1" source="c" target="d" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ede" edge="1" source="d" target="e" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eef" edge="1" source="e" target="f" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="efg" edge="1" source="f" target="g" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="egh" value="approved" edge="1" source="g" target="h_node" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="egl" value="rejected" edge="1" source="g" target="l" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ehi" edge="1" source="h_node" target="i" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="eij" edge="1" source="i" target="j" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ejk" value="approved" edge="1" source="j" target="k" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ejl" value="rejected" edge="1" source="j" target="l" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,55 @@
+slide: 1
+title: "NExT Infrastructure Architecture Review"
+section: "Introduction"
+layout: "title"
+
+background:
+  fill: "#1B1F3B"
+
+elements:
+  - type: shape
+    shape: rectangle
+    left: 0
+    top: 0
+    width: 13.333
+    height: 0.08
+    fill: "#0078D4"
+
+  - type: shape
+    shape: rectangle
+    left: 0
+    top: 7.42
+    width: 13.333
+    height: 0.08
+    fill: "#0078D4"
+
+  - type: textbox
+    left: 1.0
+    top: 2.5
+    width: 11.0
+    height: 1.8
+    text: "NExT Infrastructure\nArchitecture Review"
+    font: "Segoe UI"
+    font_size: 44
+    font_color: "#F8F8FC"
+    font_bold: true
+    alignment: left
+
+  - type: textbox
+    left: 1.0
+    top: 4.8
+    width: 8.0
+    height: 0.6
+    text: "Platform Team | June 2026"
+    font: "Segoe UI"
+    font_size: 20
+    font_color: "#9CA3AF"
+    alignment: left
+
+  - type: shape
+    shape: rectangle
+    left: 1.0
+    top: 4.4
+    width: 3.0
+    height: 0.04
+    fill: "#0078D4"

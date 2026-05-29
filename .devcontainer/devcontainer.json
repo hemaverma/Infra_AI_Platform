@@ -1,0 +1,63 @@
+{
+  "name": "infra-ai-platform",
+  "image": "mcr.microsoft.com/devcontainers/python:3.10-bookworm",
+
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+
+  "remoteEnv": {
+    "PYTHONUNBUFFERED": "1"
+  },
+
+  "containerEnv": {
+    "PIP_DISABLE_PIP_VERSION_CHECK": "1"
+  },
+
+  "forwardPorts": [7071, 9091],
+  "portsAttributes": {
+    "7071": { "label": "Azure Functions host" },
+    "9091": { "label": "debugpy" }
+  },
+
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "8gb",
+    "storage": "32gb"
+  },
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.terminal.activateEnvironment": false,
+        "editor.formatOnSave": false,
+        "files.eol": "\n",
+        "[python]": {
+          "editor.tabSize": 4
+        }
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.flake8",
+        "ms-azuretools.vscode-azurefunctions",
+        "task.vscode-task",
+        "humao.rest-client",
+        "DavidAnson.vscode-markdownlint",
+        "bierner.markdown-mermaid",
+        "streetsidesoftware.code-spell-checker",
+        "GitHub.copilot",
+        "GitHub.copilot-chat"
+      ]
+    }
+  },
+
+  "remoteUser": "vscode"
+}

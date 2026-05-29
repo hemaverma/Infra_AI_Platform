@@ -1,0 +1,101 @@
+slide: 2
+title: "Architecture Pillars"
+section: "Executive Summary"
+layout: "content"
+
+elements:
+  - type: shape
+    shape: rectangle
+    left: 0
+    top: 0
+    width: 13.333
+    height: 0.08
+    fill: "#0078D4"
+
+  - type: textbox
+    left: 0.8
+    top: 0.4
+    width: 10.0
+    height: 0.8
+    text: "Architecture Pillars"
+    font: "Segoe UI"
+    font_size: 32
+    font_color: "#1A1A2E"
+    font_bold: true
+    alignment: left
+
+  - type: card
+    left: 0.8
+    top: 1.6
+    width: 5.5
+    height: 2.4
+    title: "Zero-Secret Architecture"
+    title_color: "#1A1A2E"
+    title_size: 16
+    title_bold: true
+    accent_bar: true
+    accent_color: "#0078D4"
+    content:
+      - bullet: "User Assigned Managed Identity"
+        color: "#4B5563"
+      - bullet: "OIDC federation for CI/CD"
+        color: "#4B5563"
+      - bullet: "No stored credentials anywhere"
+        color: "#4B5563"
+
+  - type: card
+    left: 6.8
+    top: 1.6
+    width: 5.5
+    height: 2.4
+    title: "Defense-in-Depth Networking"
+    title_color: "#1A1A2E"
+    title_size: 16
+    title_bold: true
+    accent_bar: true
+    accent_color: "#10B981"
+    content:
+      - bullet: "Private Endpoints for all services"
+        color: "#4B5563"
+      - bullet: "NSGs with deny-all-other rules"
+        color: "#4B5563"
+      - bullet: "VPN with Entra ID authentication"
+        color: "#4B5563"
+
+  - type: card
+    left: 0.8
+    top: 4.4
+    width: 5.5
+    height: 2.4
+    title: "Cost-Optimized Design"
+    title_color: "#1A1A2E"
+    title_size: 16
+    title_bold: true
+    accent_bar: true
+    accent_color: "#F59E0B"
+    content:
+      - bullet: "NAT Gateway over Azure Firewall"
+        color: "#4B5563"
+      - bullet: "GHCR over ACR Premium"
+        color: "#4B5563"
+      - bullet: "GitHub-hosted runners"
+        color: "#4B5563"
+
+  - type: card
+    left: 6.8
+    top: 4.4
+    width: 5.5
+    height: 2.4
+    title: "Automated Deployment"
+    title_color: "#1A1A2E"
+    title_size: 16
+    title_bold: true
+    accent_bar: true
+    accent_color: "#8B5CF6"
+    content:
+      - bullet: "Single deploy.sh command"
+        color: "#4B5563"
+      - bullet: "22+ Azure Verified Modules"
+        color: "#4B5563"
+      - bullet: "CI/CD with OIDC authentication"
+        color: "#4B5563"

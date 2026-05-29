@@ -1,0 +1,26 @@
+<mxfile host="app.diagrams.net" modified="2026-06-16" agent="drawio" version="24.0">
+  <diagram name="Ground Truth Workflow" id="exp-gt-001">
+    <mxGraphModel dx="1200" dy="400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="300" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="config" value="experimentation.yaml&#xa;workflow defaults" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="20" y="80" width="120" height="50" as="geometry"/></mxCell>
+        <mxCell id="samples" value="blob_seed_samples/&#xa;email.json" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="20" y="150" width="120" height="50" as="geometry"/></mxCell>
+        <mxCell id="prefill" value="prefill_ground_truth.py" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="180" y="100" width="140" height="40" as="geometry"/></mxCell>
+        <mxCell id="review" value="Review sample files&#xa;update ground_truth.json" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="360" y="100" width="150" height="40" as="geometry"/></mxCell>
+        <mxCell id="evaluate" value="evaluate / run" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="550" y="100" width="120" height="40" as="geometry"/></mxCell>
+        <mxCell id="runs" value="ground_truth/runs/&#xa;evaluation reports" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="710" y="100" width="130" height="40" as="geometry"/></mxCell>
+        <mxCell id="summarize" value="summarize" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="880" y="100" width="100" height="40" as="geometry"/></mxCell>
+        <mxCell id="summaries" value="summaries/&#xa;runs_summary.csv&#xa;field_metrics.csv&#xa;sample_diffs.csv" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="1"><mxGeometry x="1020" y="80" width="120" height="70" as="geometry"/></mxCell>
+        <!-- Edges -->
+        <mxCell id="e1" edge="1" source="config" target="prefill" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" edge="1" source="samples" target="prefill" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" edge="1" source="prefill" target="review" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" edge="1" source="review" target="evaluate" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" edge="1" source="evaluate" target="runs" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" edge="1" source="runs" target="summarize" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" edge="1" source="summarize" target="summaries" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

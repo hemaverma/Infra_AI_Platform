@@ -1,0 +1,25 @@
+<mxfile host="app.diagrams.net" modified="2026-06-16" agent="drawio" version="24.0">
+  <diagram name="ACR vs GHCR" id="acr-ghcr-001">
+    <mxGraphModel dx="900" dy="500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="800" pageHeight="400" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- Public Variant -->
+        <mxCell id="pub" value="Public Variant" style="swimlane;startSize=20;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="350" height="100" as="geometry"/></mxCell>
+        <mxCell id="gha" value="GitHub Actions&#xa;ubuntu-latest" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="pub"><mxGeometry x="10" y="35" width="100" height="50" as="geometry"/></mxCell>
+        <mxCell id="ghcr" value="ghcr.io" style="rounded=1;whiteSpace=wrap;fillColor=#f9f;" vertex="1" parent="pub"><mxGeometry x="140" y="45" width="70" height="35" as="geometry"/></mxCell>
+        <mxCell id="ca_pub" value="Container Apps&#xa;Public" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="pub"><mxGeometry x="240" y="45" width="100" height="35" as="geometry"/></mxCell>
+        <!-- Private Variant -->
+        <mxCell id="prv" value="Private Variant (VNet Isolated)" style="swimlane;startSize=20;" vertex="1" parent="1"><mxGeometry x="20" y="150" width="380" height="100" as="geometry"/></mxCell>
+        <mxCell id="shr" value="Self-Hosted Runner&#xa;inside VNet" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="prv"><mxGeometry x="10" y="35" width="110" height="50" as="geometry"/></mxCell>
+        <mxCell id="acr" value="ACR&#xa;Private Endpoint" style="rounded=1;whiteSpace=wrap;fillColor=#bbf;" vertex="1" parent="prv"><mxGeometry x="150" y="45" width="100" height="35" as="geometry"/></mxCell>
+        <mxCell id="ca_prv" value="Container Apps&#xa;Internal" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="prv"><mxGeometry x="280" y="45" width="90" height="35" as="geometry"/></mxCell>
+        <!-- Edges -->
+        <mxCell id="e1" value="docker push" edge="1" source="gha" target="ghcr" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="anonymous pull" edge="1" source="ghcr" target="ca_pub" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="az acr login + push" edge="1" source="shr" target="acr" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="managed identity pull" edge="1" source="acr" target="ca_prv" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

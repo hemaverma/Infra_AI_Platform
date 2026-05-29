@@ -1,0 +1,32 @@
+<mxfile host="app.diagrams.net" modified="2026-06-16" agent="drawio" version="24.0">
+  <diagram name="Logic App Deployment" id="la-deploy-001">
+    <mxGraphModel dx="1000" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <!-- GitHub Actions -->
+        <mxCell id="gha" value="GitHub Actions: deploy-apps.yml" style="swimlane;startSize=20;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="280" height="100" as="geometry"/></mxCell>
+        <mxCell id="job1" value="build-and-deploy-container" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="gha"><mxGeometry x="10" y="35" width="120" height="50" as="geometry"/></mxCell>
+        <mxCell id="job2" value="deploy-logic-app-workflows" style="rounded=1;whiteSpace=wrap;fillColor=#bbf;" vertex="1" parent="gha"><mxGeometry x="140" y="35" width="130" height="50" as="geometry"/></mxCell>
+        <!-- Public Variant -->
+        <mxCell id="pubvar" value="Public Variant" style="swimlane;startSize=20;" vertex="1" parent="1"><mxGeometry x="350" y="20" width="250" height="100" as="geometry"/></mxCell>
+        <mxCell id="scm_pub" value="Logic App SCM&#xa;Public Endpoint" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="pubvar"><mxGeometry x="10" y="35" width="110" height="50" as="geometry"/></mxCell>
+        <mxCell id="la_pub" value="Logic App Runtime" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="pubvar"><mxGeometry x="140" y="45" width="100" height="35" as="geometry"/></mxCell>
+        <!-- Private Variant -->
+        <mxCell id="prvvar" value="Private Variant (VNet Isolated)" style="swimlane;startSize=20;" vertex="1" parent="1"><mxGeometry x="350" y="150" width="280" height="100" as="geometry"/></mxCell>
+        <mxCell id="scm_prv" value="Logic App SCM&#xa;Private Endpoint" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="prvvar"><mxGeometry x="10" y="35" width="110" height="50" as="geometry"/></mxCell>
+        <mxCell id="la_prv" value="Logic App Runtime" style="rounded=1;whiteSpace=wrap;" vertex="1" parent="prvvar"><mxGeometry x="140" y="45" width="100" height="35" as="geometry"/></mxCell>
+        <!-- Infrastructure -->
+        <mxCell id="infra" value="Infrastructure (Bicep)" style="swimlane;startSize=20;" vertex="1" parent="1"><mxGeometry x="350" y="280" width="250" height="80" as="geometry"/></mxCell>
+        <mxCell id="bicep" value="logic-app.bicep" style="rounded=1;whiteSpace=wrap;fillColor=#f9f;" vertex="1" parent="infra"><mxGeometry x="60" y="30" width="120" height="35" as="geometry"/></mxCell>
+        <!-- Edges -->
+        <mxCell id="e1" value="ubuntu-latest" edge="1" source="job2" target="scm_pub" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="self-hosted runner" edge="1" source="job2" target="scm_prv" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="writes workflow files" edge="1" source="scm_pub" target="la_pub" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="writes workflow files" edge="1" source="scm_prv" target="la_prv" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="creates empty host" edge="1" source="bicep" target="la_pub" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" value="creates empty host" edge="1" source="bicep" target="la_prv" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

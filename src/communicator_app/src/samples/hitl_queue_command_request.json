@@ -1,0 +1,10 @@
+{
+  "queueName": "hitl-queue",
+  "eventType": "command-approval.requested",
+  "workflowInstanceId": "next-communicator-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a01",
+  "workflowPrefix": "next-communicator-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a01",
+  "checkpointId": "<minted-by-checkpoint-storage>",
+  "internetMessageId": "<MSG-LAX-NYC-7821@vendor.example>",
+  "approvalType": "command",
+  "adaptiveCardMessage": "**Ticket:** CHG-7821\n\n**Circuits:** LAX-NYC-OC192-001\n\n**Window:** 2026-05-12 01:00 UTC\n\n**Summary:** Maintenance: LAX-NYC circuit\n\n### Proposed Operations\n\n- **create_ticket**: {'ticket_id': 'CHG-7821', 'circuit_ids': ['LAX-NYC-OC192-001'], 'maintenance_window': '2026-05-12 01:00 UTC', 'summary': 'Maintenance: LAX-NYC circuit'}"
+}

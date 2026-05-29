@@ -1,0 +1,20 @@
+# Development dependencies
+# Testing
+pytest>=9.0.3,<10.0
+pytest-asyncio>=0.23.0,<1.0
+pytest-cov>=5.0,<6.0
+
+# Linting
+flake8>=7.0,<8.0
+flake8-docstrings>=1.7.0,<2.0
+
+# Documentation linting
+pymarkdownlnt>=0.9.22,<1.0
+
+# Note: cspell (spell checking) is a Node.js tool
+# Install via npm: npm install -g cspell
+# Or use via npx: npx cspell "**/*.{md,py,yaml,json}"
+
+# Taskfile support
+go-task-bin>=3.45.4
+debugpy>=1.8.0,<2.0

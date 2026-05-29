@@ -1,0 +1,24 @@
+
+[flake8]
+max-line-length = 120
+# Removed D100,D101,D102 from ignore to enforce module/class/function docstrings.
+# Keep E203/W503 (formatting) ignored for compatibility with Black-like spacing.
+ignore = E203, W503
+exclude = .git
+    ,__pycache__
+    ,build
+    ,dist
+    ,.venv
+    ,venv
+    ,docs
+    ,.gitignore
+    ,.gitlab-ci.yml
+    ,archive
+max-complexity = 15
+docstring-convention = google
+select = E,F,W,C90,D
+
+# Relax docstring requirements inside tests.
+per-file-ignores =
+    tests/**: D100,D101,D102,D103,D104
+    initial-investigation/discovery/pipeline/prompts.py: E501

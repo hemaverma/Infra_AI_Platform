@@ -1,0 +1,62 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "ADR",
+    "autogen",
+    "azureml",
+    "choco",
+    "Conda",
+    "conftest",
+    "datetime",
+    "docstrings",
+    "dtype",
+    "eastus",
+    "flake",
+    "JSONL",
+    "MADR",
+    "mlflow",
+    "mypy",
+    "numpy",
+    "pymarkdown",
+    "pyproject",
+    "pytest",
+    "taskfile",
+    "toml",
+    "venv",
+    "virtualenv",
+    "westeurope",
+    "westus"
+  ],
+  "ignorePaths": [
+    ".venv/**",
+    "venv/**",
+    "node_modules/**",
+    ".git/**",
+    "**/__pycache__/**",
+    "*.pyc",
+    ".pytest_cache/**",
+    ".mypy_cache/**",
+    ".ruff_cache/**",
+    "*.egg-info/**",
+    "dist/**",
+    "build/**",
+    "*.min.js",
+    "*.min.css",
+    "package-lock.json",
+    "poetry.lock",
+    "requirements-freeze.txt"
+  ],
+  "flagWords": [],
+  "enabledLanguageIds": [
+    "markdown"
+  ],
+  "dictionaries": [
+    "python",
+    "en-us",
+    "en-gb",
+    "companies",
+    "softwareTerms",
+    "misc"
+  ]
+}

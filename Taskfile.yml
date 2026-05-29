@@ -1,0 +1,460 @@
+version: '3'
+
+env:
+  PYTHON:
+    sh: |
+      if [ -f .venv/Scripts/python.exe ]; then
+        echo ".venv/Scripts/python.exe"
+      elif [ -f .venv/bin/python ]; then
+        echo ".venv/bin/python"
+      else
+        echo "python"
+      fi
+
+vars:
+  CACHE_DIRS: .pytest_cache .mypy_cache .ruff_cache
+
+tasks:
+  # --------------------------------------------------
+  # Environment & Dependencies
+  # --------------------------------------------------
+  env:create:
+    desc: Create virtual environment if it doesn't exist
+    status:
+      - test -d .venv
+    cmds:
+      - "{{.PYTHON}} -m venv .venv"
+      - echo "Virtual environment created at .venv"
+      - echo "Activate it with:"
+      - 'echo "  PowerShell: .\.venv\Scripts\Activate.ps1"'
+      - 'echo "  Bash: source .venv/bin/activate or source ./.venv/Scripts/activate"'
+
+  env:info:
+    desc: Show Python environment info
+    cmds:
+      - "{{.PYTHON}} --version"
+      - "{{.PYTHON}} -m pip --version"
+
+  deps:install:
+    desc: Install project dependencies via pip
+    cmds:
+      - "{{.PYTHON}} -m pip install -r requirements-dev.txt"
+      - "{{.PYTHON}} -m pip install -r requirements.txt"
+      - "{{.PYTHON}} -m pip install -r src/communicator_app/requirements.txt"
+      - "{{.PYTHON}} -m pip install -r src/experimentation/requirements.txt"
+
+  deps:install:component:
+    desc: Install dependencies for a specific component (usage - task deps:install:component COMPONENT=agent_app)
+    cmds:
+      - "{{.PYTHON}} -m pip install -r src/{{.COMPONENT}}/requirements.txt"
+
+  deps:install:dev:
+    desc: Install development dependencies (linters, test tools)
+    cmds:
+      - "{{.PYTHON}} -m pip install -r requirements-dev.txt"
+
+  deps:freeze:
+    desc: Generate current installed packages list
+    cmds:
+      - "{{.PYTHON}} -m pip freeze > requirements-freeze.txt"
+
+  # --------------------------------------------------
+  # Testing
+  # --------------------------------------------------
+  test:quick:
+    desc: Run quick test suite (-q)
+    cmds:
+      - "{{.PYTHON}} -m pytest -q"
+
+  test:verbose:
+    desc: Run tests with detailed reporting (-ra)
+    cmds:
+      - "{{.PYTHON}} -m pytest -ra"
+
+  test:all:
+    desc: Alias to run verbose test suite
+    cmds:
+      - task: test:verbose
+
+  # --------------------------------------------------
+  # Linting
+  # --------------------------------------------------
+  lint:python:
+    desc: Lint Python sources with flake8
+    cmds:
+      - "{{.PYTHON}} -m flake8"
+
+  lint:docs:
+    desc: Lint all Markdown files
+    sources:
+      - "**/*.md"
+      - .pymarkdown.json
+    cmds:
+      - "{{.PYTHON}} -m pymarkdown --config .pymarkdown.json scan -r README.md .github docs src"
+
+  lint:spell:
+    desc: Check spelling in markdown files using cspell
+    sources:
+      - "**/*.md"
+      - .cspell.json
+    cmds:
+      - npx cspell "**/*.md" --no-progress
+
+  lint:all:
+    desc: Run all lint tasks (python + markdown)
+    deps: [lint:python, lint:docs]
+
+  # --------------------------------------------------
+  # Documentation
+  # --------------------------------------------------
+  docs:list:
+    desc: List all discovered Markdown files (recursive)
+    cmds:
+      - "{{.PYTHON}} -c \"import pathlib; [print(p) for p in pathlib.Path().rglob('*.md')]\""
+
+  docs:fix:
+    desc: Auto-fix Markdown issues (non-zero exit allowed) then lint
+    ignore_error: true
+    cmds:
+      - "{{.PYTHON}} -m pymarkdown --config .pymarkdown.json fix -r README.md .github docs src -e '**/.venv/**'"
+      - task: lint:docs
+
+  lint:docs:force:
+    desc: Force re-run of markdown lint ignoring task caching (no sources list)
+    cmds:
+      - "echo '[lint:docs:force] Forcing full scan (ignoring cached sources).'"
+      - "{{.PYTHON}} -m pymarkdown --config .pymarkdown.json scan -r -e '**/.venv/**' README.md .github docs src"
+
+  docs:verify:
+    desc: List markdown files, then lint
+    cmds:
+      - task: docs:list
+      - task: lint:docs
+
+  # --------------------------------------------------
+  # Communicator App
+  # --------------------------------------------------
+  app:deps:
+    desc: Install communicator_app dependencies
+    cmds:
+      - "{{.PYTHON}} -m pip install -r src/communicator_app/requirements.txt"
+
+  app:start:
+    desc: Start the communicator_app Azure Functions host locally
+    dir: src/communicator_app/src
+    cmds:
+      - func start --python ../../../.venv/Scripts/python.exe
+
+  app:start:debug:
+    desc: Start communicator_app with debugpy attached (port 9091)
+    dir: src/communicator_app/src
+    env:
+      ENABLE_DEBUGPY: "1"
+      DEBUGPY_PORT: "9091"
+    cmds:
+      - func start --python ../../../.venv/Scripts/python.exe
+
+  app:checkpoints:clear:
+    desc: Delete local checkpoint files between test runs
+    cmds:
+      - rm -rf src/communicator_app/src/checkpoints/*.json
+      - rm -rf src/communicator_app/src/checkpoints/*.json.tmp
+      - echo "Checkpoints cleared."
+
+  experiment:_run-module:
+    internal: true
+    dir: src/experimentation/src
+    cmds:
+      - |
+        CONFIG_PATH="../config/experimentation.yaml"
+        if [ -n "$CONFIG" ]; then
+          case "$CONFIG" in
+            /*|[A-Za-z]:/*) CONFIG_PATH="$CONFIG" ;;
+            *) CONFIG_PATH="../../../$CONFIG" ;;
+          esac
+        fi
+        if [ "{{.USE_MODEL}}" = "true" ] && [ -n "$MODEL" ]; then
+          export AZURE_OPENAI_MODEL="$MODEL"
+        fi
+        PYTHON_BIN="../../../{{.PYTHON}}"
+        if [ ! -f "$PYTHON_BIN" ]; then
+          PYTHON_BIN="{{.PYTHON}}"
+        fi
+        "$PYTHON_BIN" -m "{{.MODULE}}" --config "$CONFIG_PATH"
+
+  experiment:ground-truth:prefill:
+    desc: Generate ground-truth candidates from the configured seed samples (optional CONFIG=... MODEL=gpt-4.1)
+    cmds:
+      - task: experiment:_run-module
+        vars:
+          MODULE: experimentation.prefill_ground_truth
+          USE_MODEL: "true"
+
+  experiment:ground-truth:evaluate:
+    desc: Run ground-truth evaluation using the configured dataset (optional CONFIG=... MODEL=gpt-4.1)
+    cmds:
+      - task: experiment:_run-module
+        vars:
+          MODULE: experimentation.evaluate_ground_truth
+          USE_MODEL: "true"
+
+  experiment:ground-truth:summarize:
+    desc: Refresh summary CSVs from configured evaluation outputs (optional CONFIG=...)
+    cmds:
+      - task: experiment:_run-module
+        vars:
+          MODULE: experimentation.summarize_ground_truth_runs
+
+  experiment:config:validate:
+    desc: Validate the experimentation config and report resolved inputs (optional CONFIG=...)
+    cmds:
+      - task: experiment:_run-module
+        vars:
+          MODULE: experimentation.config
+
+  experiment:ground-truth:run:
+    desc: Run ground-truth evaluation and refresh summary CSVs (optional CONFIG=... MODEL=gpt-4.1)
+    cmds:
+      - task: experiment:ground-truth:evaluate
+      - task: experiment:ground-truth:summarize
+
+  # --------------------------------------------------
+  # Maintenance
+  # --------------------------------------------------
+  project:clean:
+    desc: Remove Python caches and build artifacts
+    cmds:
+      - "echo Cleaning caches: {{.CACHE_DIRS}}"
+      - "for d in {{.CACHE_DIRS}}; do [ -d \"$d\" ] && rm -rf \"$d\" || true; done"
+      - "find . -type d -name __pycache__ -prune -exec rm -rf {} +"
+      - "find . -type f -name '*.pyc' -delete"
+
+  project:init:
+    desc: Bootstrap project (create venv, install deps, quick tests)
+    cmds:
+      - task: env:create
+      - task: deps:install
+      - task: test:quick
+
+  build:reinstall:
+    desc: Clean then reinstall dependencies
+    cmds:
+      - task: project:clean
+      - task: deps:install
+
+  # --------------------------------------------------
+  # Meta
+  # --------------------------------------------------
+  all:check:
+    desc: Run lint:all and test:quick
+    cmds:
+      - task: lint:all
+      - task: test:quick
+
+  # --------------------------------------------------
+  # Deployment
+  # --------------------------------------------------
+  deploy:env:setup:
+    desc: Validate deployment prerequisites and configure environment
+    cmds:
+      - echo "Checking deployment prerequisites..."
+      - az version
+      - az bicep version
+      - func --version
+      - echo "All system tools available."
+      - git config core.autocrlf false
+      - git config core.eol lf
+      - echo "✓ Git line endings set to LF"
+      - echo "✓ Deployment environment ready"
+
+  deploy:validate:
+    desc: Validate all Bicep templates (public + private variants)
+    cmds:
+      - bash src/infra_deployment/validate.sh
+      - echo "✓ Both variants validated successfully"
+
+  deploy:build:
+    desc: Compile Bicep to ARM JSON (keeps main.json files in sync for Deploy to Azure button)
+    dir: src/infra_deployment
+    cmds:
+      - az bicep build --file public/main.bicep --outfile public/main.json
+      - echo "✓ public/main.json updated"
+      - az bicep build --file private/main.bicep --outfile private/main.json
+      - echo "✓ private/main.json updated"
+    sources:
+      - public/main.bicep
+      - private/main.bicep
+      - modules/**/*.bicep
+    generates:
+      - public/main.json
+      - private/main.json
+
+  deploy:whatif:
+    desc: Preview infrastructure changes (ARM what-if, private variant)
+    cmds:
+      - bash src/infra_deployment/deploy.sh --variant private --what-if
+
+  deploy:infra:
+    desc: Deploy private infrastructure to Azure (full VNet + PEs)
+    deps: [deploy:validate]
+    cmds:
+      - bash src/infra_deployment/deploy.sh --variant private {{.CLI_ARGS}}
+
+  deploy:infra-public:
+    desc: Deploy public infrastructure to Azure (no VNet)
+    deps: [deploy:validate]
+    cmds:
+      - bash src/infra_deployment/deploy.sh --variant public {{.CLI_ARGS}}
+
+  deploy:vpn-dns:
+    desc: Configure VPN Gateway to push private DNS resolver to P2S clients
+    vars:
+      RG: '{{.DEPLOY_RG | default ""}}'
+    preconditions:
+      - sh: '[ -n "{{.RG}}" ]'
+        msg: "DEPLOY_RG is required. Set it with: task deploy:vpn-dns DEPLOY_RG=Next-Private68"
+    cmds:
+      - |
+        VPN_GW=$(az network vnet-gateway list --resource-group {{.RG}} --query "[0].name" -o tsv)
+        if [ -z "$VPN_GW" ]; then
+          echo "ERROR: No VPN Gateway found in resource group {{.RG}}"
+          exit 1
+        fi
+        echo "Configuring DNS on VPN Gateway: $VPN_GW"
+        az network vnet-gateway update \
+          --name "$VPN_GW" \
+          --resource-group {{.RG}} \
+          --set "vpnClientConfiguration.vpnClientAddressPool.customDnsServers=['10.0.9.4']" \
+          --no-wait \
+          --output none
+        echo "Done. VPN DNS configured. Clients must re-download profile and reconnect."
+
+  deploy:acr-build:
+    desc: Build and push communicator image to ACR using local Docker
+    vars:
+      RG: '{{.DEPLOY_RG | default ""}}'
+      TAG: '{{.TAG | default "latest"}}'
+    preconditions:
+      - sh: '[ -n "{{.RG}}" ]'
+        msg: "DEPLOY_RG is required. Set it with: task deploy:acr-build DEPLOY_RG=Next-Private68"
+      - sh: 'docker info > /dev/null 2>&1'
+        msg: "Docker daemon is not running. Start Docker Desktop."
+      - sh: 'az account show > /dev/null 2>&1'
+        msg: "Azure CLI not authenticated. Run 'az login' first."
+      - sh: 'az acr list --resource-group {{.RG}} --query "[0].name" -o tsv 2>/dev/null | grep -q .'
+        msg: "No ACR found in resource group {{.RG}}. Deploy infrastructure first."
+    cmds:
+      - |
+        ACR_NAME=$(az acr list --resource-group {{.RG}} --query "[0].name" -o tsv)
+        ACR_FQDN="${ACR_NAME}.azurecr.io"
+        echo "Building and pushing image to ACR: $ACR_NAME"
+        az acr login --name "$ACR_NAME"
+        docker build -t "${ACR_FQDN}/communicator:{{.TAG}}" \
+          -f src/communicator_app/Dockerfile \
+          src/communicator_app/
+        docker push "${ACR_FQDN}/communicator:{{.TAG}}"
+        echo "Image pushed: ${ACR_FQDN}/communicator:{{.TAG}}"
+
+  deploy:container-update:
+    desc: Update Container App with new image revision
+    vars:
+      BASE_NAME: '{{.DEPLOY_BASE_NAME | default "next"}}'
+      RG: '{{.DEPLOY_RG | default ""}}'
+      TAG: '{{.TAG | default "latest"}}'
+    preconditions:
+      - sh: '[ -n "{{.RG}}" ]'
+        msg: "DEPLOY_RG is required. Set it with: task deploy:container-update DEPLOY_RG=Next-Private68"
+      - sh: 'az account show > /dev/null 2>&1'
+        msg: "Azure CLI not authenticated. Run 'az login' first."
+      - sh: 'az acr list --resource-group {{.RG}} --query "[0].name" -o tsv 2>/dev/null | grep -q .'
+        msg: "No ACR found in resource group {{.RG}}. Deploy infrastructure first."
+    cmds:
+      - |
+        ACR_NAME=$(az acr list --resource-group {{.RG}} --query "[0].name" -o tsv)
+        if [ -z "$ACR_NAME" ]; then
+          echo "ERROR: No ACR found in resource group {{.RG}}"
+          exit 1
+        fi
+        FULL_IMAGE="${ACR_NAME}.azurecr.io/communicator:{{.TAG}}"
+        echo "Updating container app with image: $FULL_IMAGE"
+        az containerapp update \
+          --name {{.BASE_NAME}}-communicator \
+          --resource-group {{.RG}} \
+          --image "$FULL_IMAGE"
+        echo "Container App updated: {{.BASE_NAME}}-communicator"
+
+  deploy:apps:
+    desc: Build container image, update Container App, and deploy Logic App workflows
+    vars:
+      BASE_NAME: '{{.DEPLOY_BASE_NAME | default "next"}}'
+      RG: '{{.DEPLOY_RG | default ""}}'
+    cmds:
+      - task: deploy:acr-build
+      - task: deploy:container-update
+      - echo "Deploying Logic App workflows..."
+      - bash src/logic_app/deploy-workflows.sh --resource-group {{.RG}} --logic-app-name {{.BASE_NAME}}-logic
+      - echo "✓ Application deployment complete"
+
+  deploy:apps-legacy:
+    desc: Deploy Function App via code publish (legacy, pre-container)
+    vars:
+      BASE_NAME: '{{.DEPLOY_BASE_NAME | default "next"}}'
+      RG: '{{.DEPLOY_RG | default ""}}'
+    cmds:
+      - echo "Deploying Function App (code-based)..."
+      - |
+        cd src/communicator_app/src && \
+        func azure functionapp publish {{.BASE_NAME}}-func --python
+      - echo "Deploying Logic App workflows..."
+      - bash src/logic_app/deploy-workflows.sh --resource-group {{.RG}} --logic-app-name {{.BASE_NAME}}-logic
+      - echo "✓ Legacy application deployment complete"
+
+  deploy:local-build:
+    desc: Build and push communicator image to ACR using local Docker (alias for deploy:acr-build)
+    vars:
+      RG: '{{.DEPLOY_RG | default ""}}'
+      TAG: '{{.TAG | default "latest"}}'
+    cmds:
+      - task: deploy:acr-build
+
+  deploy:local-apps:
+    desc: Local Docker build + Container App update + Logic App deploy
+    vars:
+      RG: '{{.DEPLOY_RG | default ""}}'
+    cmds:
+      - task: deploy:local-build
+      - task: deploy:container-update
+      - echo "Deploying Logic App workflows..."
+      - bash src/logic_app/deploy-workflows.sh --resource-group {{.RG}} --logic-app-name {{.DEPLOY_BASE_NAME | default "next"}}-logic
+      - echo "✓ Local application deployment complete"
+
+  deploy:all:
+    desc: Full deployment pipeline (validate → build → deploy infra → deploy apps)
+    cmds:
+      - task: deploy:validate
+      - task: deploy:build
+      - task: deploy:infra
+      - task: deploy:apps
+
+  deploy:all-public:
+    desc: "Full public deployment: validate → build → infra → apps"
+    cmds:
+      - task: deploy:validate
+      - task: deploy:build
+      - task: deploy:infra-public
+      - task: deploy:apps
+
+  deploy:vm:
+    desc: "[DEPRECATED] Deployer VM removed — Logic App deploys via GitHub Actions (self-hosted runner)"
+    cmds:
+      - echo "The deployer VM has been replaced by a self-hosted GitHub Actions runner."
+      - echo "Logic App workflows deploy automatically on push to main (src/logic_app/**)."
+      - echo "To manage the runner VM, use github-runner.bicep via the infra deployment."
+
+  deploy:private:
+    desc: "[DEPRECATED] VM-based post-deploy removed — use GitHub Actions CI/CD"
+    cmds:
+      - echo "Private app deployment now uses GitHub Actions with the self-hosted runner."
+      - echo "Container App image: updated via deploy.sh (management plane)"
+      - echo "Logic App workflows: deployed via .github/workflows/deploy-apps.yml"
+

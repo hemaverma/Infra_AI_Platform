@@ -1,0 +1,26 @@
+dimensions:
+  width_inches: 13.333
+  height_inches: 7.5
+  format: "16:9"
+
+metadata:
+  title: "NExT Infrastructure Architecture Review"
+  author: "Platform Team"
+  subject: "Infrastructure Architecture"
+  keywords: "NExT, Azure, Infrastructure, Architecture"
+  category: "Architecture Review"
+
+defaults:
+  title_bar:
+    height_inches: 0.08
+    color: "#0078D4"
+    top_inches: 0
+  accent_bar:
+    height_inches: 0.04
+    color: "#0078D4"
+  card:
+    fill: "#F5F5F5"
+    corner_radius_inches: 0.12
+    border_color: "#E0E0E0"
+    border_width_pt: 1
+  speaker_notes_required: false

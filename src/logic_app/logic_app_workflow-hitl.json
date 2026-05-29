@@ -1,0 +1,291 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "parameters": {
+            "teamsGroupId": {
+                "type": "String",
+                "defaultValue": "",
+                "metadata": {
+                    "description": "The Teams group (team) ID for HITL approval notifications"
+                }
+            },
+            "teamsChannelId": {
+                "type": "String",
+                "defaultValue": "",
+                "metadata": {
+                    "description": "The Teams channel ID for HITL approval notifications"
+                }
+            },
+            "notificationRecipientEmail": {
+                "type": "String",
+                "defaultValue": "",
+                "metadata": {
+                    "description": "The email address to send approved email notifications to"
+                }
+            },
+            "workflowQueueName": {
+                "type": "String",
+                "defaultValue": "workflow-queue",
+                "metadata": {
+                    "description": "Queue name for workflow events"
+                }
+            },
+            "hitlQueueName": {
+                "type": "String",
+                "defaultValue": "hitl-queue",
+                "metadata": {
+                    "description": "Queue name for human-in-the-loop approval requests"
+                }
+            }
+        },
+        "actions": {
+            "Parse_Message_JSON": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@triggerBody()?['contentData']",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "queueName": { "type": "string" },
+                            "eventType": { "type": "string" },
+                            "workflowInstanceId": { "type": "string" },
+                            "workflowPrefix": { "type": "string" },
+                            "checkpointId": { "type": "string" },
+                            "internetMessageId": { "type": "string" },
+                            "approvalType": { "type": "string" },
+                            "adaptiveCardMessage": { "type": "string" }
+                        }
+                    }
+                },
+                "runAfter": {}
+            },
+            "Compose_Adaptive_Card": {
+                "type": "Compose",
+                "inputs": {
+                    "$schema": "https://adaptivecards.io/schemas/adaptive-card.json",
+                    "type": "AdaptiveCard",
+                    "version": "1.4",
+                    "body": [
+                        {
+                            "type": "TextBlock",
+                            "size": "Medium",
+                            "weight": "Bolder",
+                            "text": "@{if(equals(body('Parse_Message_JSON')?['eventType'], 'command-approval.requested'), 'Command Approval Required', 'Email Approval Required')}"
+                        },
+                        {
+                            "type": "TextBlock",
+                            "wrap": true,
+                            "text": "@{body('Parse_Message_JSON')?['adaptiveCardMessage']}"
+                        }
+                    ],
+                    "actions": [
+                        {
+                            "type": "Action.Submit",
+                            "title": "Approve"
+                        },
+                        {
+                            "type": "Action.Submit",
+                            "title": "Reject"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Parse_Message_JSON": ["SUCCEEDED"]
+                }
+            },
+            "Check_Event_Type": {
+                "type": "If",
+                "expression": {
+                    "and": [
+                        {
+                            "equals": [
+                                "@body('Parse_Message_JSON')?['eventType']",
+                                "command-approval.requested"
+                            ]
+                        }
+                    ]
+                },
+                "actions": {
+                    "Post_adaptive_card_and_wait_for_a_response": {
+                        "type": "ApiConnectionWebhook",
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "referenceName": "teams"
+                                }
+                            },
+                            "body": {
+                                "notificationUrl": "@listCallbackUrl()",
+                                "body": {
+                                    "messageBody": "@{string(outputs('Compose_Adaptive_Card'))}",
+                                    "updateMessage": "Thanks for your response!",
+                                    "recipient": {
+                                        "groupId": "@{parameters('teamsGroupId')}",
+                                        "channelId": "@{parameters('teamsChannelId')}"
+                                    }
+                                }
+                            },
+                            "path": "/v1.0/teams/conversation/gatherinput/poster/Flow bot/location/@{encodeURIComponent('Channel')}/$subscriptions"
+                        }
+                    },
+                    "Build_Approval_Response": {
+                        "type": "Compose",
+                        "inputs": {
+                            "queueName": "@{parameters('workflowQueueName')}",
+                            "eventType": "approval.responded",
+                            "workflowInstanceId": "@{body('Parse_Message_JSON')?['workflowInstanceId']}",
+                            "workflowPrefix": "@{body('Parse_Message_JSON')?['workflowPrefix']}",
+                            "checkpointId": "@{body('Parse_Message_JSON')?['checkpointId']}",
+                            "approvalType": "@{body('Parse_Message_JSON')?['approvalType']}",
+                            "approvalStatus": "@{body('Post_adaptive_card_and_wait_for_a_response')?['submitActionId']}"
+                        },
+                        "runAfter": {
+                            "Post_adaptive_card_and_wait_for_a_response": ["SUCCEEDED"]
+                        }
+                    },
+                    "Send_approval_to_Service_Bus": {
+                        "type": "ServiceProvider",
+                        "inputs": {
+                            "parameters": {
+                                "entityName": "@{parameters('workflowQueueName')}",
+                                "message": {
+                                    "contentData": "@{string(outputs('Build_Approval_Response'))}"
+                                }
+                            },
+                            "serviceProviderConfiguration": {
+                                "connectionName": "ServiceBusConnection",
+                                "operationId": "sendMessage",
+                                "serviceProviderId": "/serviceProviders/serviceBus"
+                            }
+                        },
+                        "runAfter": {
+                            "Build_Approval_Response": ["SUCCEEDED"]
+                        }
+                    }
+                },
+                "else": {
+                    "actions": {
+                        "Post_email_adaptive_card_and_wait_for_a_response": {
+                            "type": "ApiConnectionWebhook",
+                            "inputs": {
+                                "host": {
+                                    "connection": {
+                                        "referenceName": "teams"
+                                    }
+                                },
+                                "body": {
+                                    "notificationUrl": "@listCallbackUrl()",
+                                    "body": {
+                                        "messageBody": "@{string(outputs('Compose_Adaptive_Card'))}",
+                                        "updateMessage": "Thanks for your response!",
+                                        "recipient": {
+                                            "groupId": "@{parameters('teamsGroupId')}",
+                                            "channelId": "@{parameters('teamsChannelId')}"
+                                        }
+                                    }
+                                },
+                                "path": "/v1.0/teams/conversation/gatherinput/poster/Flow bot/location/@{encodeURIComponent('Channel')}/$subscriptions"
+                            }
+                        },
+                        "Check_Email_Approved": {
+                            "type": "If",
+                            "expression": {
+                                "and": [
+                                    {
+                                        "equals": [
+                                            "@body('Post_email_adaptive_card_and_wait_for_a_response')?['submitActionId']",
+                                            "Approve"
+                                        ]
+                                    }
+                                ]
+                            },
+                            "actions": {
+                                "Send_an_email_(V2)": {
+                                    "type": "ApiConnection",
+                                    "inputs": {
+                                        "host": {
+                                            "connection": {
+                                                "referenceName": "office365"
+                                            }
+                                        },
+                                        "method": "post",
+                                        "body": {
+                                            "To": "@{parameters('notificationRecipientEmail')}",
+                                            "Subject": "NExT Automation: @{body('Parse_Message_JSON')?['workflowInstanceId']}",
+                                            "Body": "@{body('Parse_Message_JSON')?['adaptiveCardMessage']}",
+                                            "Importance": "Normal"
+                                        },
+                                        "path": "/v2/Mail"
+                                    }
+                                }
+                            },
+                            "else": {
+                                "actions": {}
+                            },
+                            "runAfter": {
+                                "Post_email_adaptive_card_and_wait_for_a_response": ["SUCCEEDED"]
+                            }
+                        },
+                        "Build_Email_Approval_Response": {
+                            "type": "Compose",
+                            "inputs": {
+                                "queueName": "@{parameters('workflowQueueName')}",
+                                "eventType": "approval.responded",
+                                "workflowInstanceId": "@{body('Parse_Message_JSON')?['workflowInstanceId']}",
+                                "workflowPrefix": "@{body('Parse_Message_JSON')?['workflowPrefix']}",
+                                "checkpointId": "@{body('Parse_Message_JSON')?['checkpointId']}",
+                                "approvalType": "email",
+                                "approvalStatus": "@{body('Post_email_adaptive_card_and_wait_for_a_response')?['submitActionId']}"
+                            },
+                            "runAfter": {
+                                "Check_Email_Approved": ["SUCCEEDED"]
+                            }
+                        },
+                        "Send_email_approval_to_Service_Bus": {
+                            "type": "ServiceProvider",
+                            "inputs": {
+                                "parameters": {
+                                    "entityName": "@{parameters('workflowQueueName')}",
+                                    "message": {
+                                        "contentData": "@{string(outputs('Build_Email_Approval_Response'))}"
+                                    }
+                                },
+                                "serviceProviderConfiguration": {
+                                    "connectionName": "ServiceBusConnection",
+                                    "operationId": "sendMessage",
+                                    "serviceProviderId": "/serviceProviders/serviceBus"
+                                }
+                            },
+                            "runAfter": {
+                                "Build_Email_Approval_Response": ["SUCCEEDED"]
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Compose_Adaptive_Card": ["SUCCEEDED"]
+                }
+            }
+        },
+        "outputs": {},
+        "triggers": {
+            "When_messages_are_available_in_queue": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "queueName": "@{parameters('hitlQueueName')}",
+                        "isSessionsEnabled": false
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "ServiceBusConnection",
+                        "operationId": "receiveQueueMessages",
+                        "serviceProviderId": "/serviceProviders/serviceBus"
+                    }
+                },
+                "splitOn": "@triggerOutputs()?['body']"
+            }
+        }
+    },
+    "kind": "stateful"
+}

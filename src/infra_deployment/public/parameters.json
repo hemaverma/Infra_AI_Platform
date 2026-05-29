@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "baseName": { "value": "next" },
+    "uniquePrefix": { "value": "" },
+    "location": { "value": "westus3" },
+    "tags": {
+      "value": {
+        "project": "NExT",
+        "environment": "poc",
+        "team": "next",
+        "SecurityControl": "Ignore",
+        "security-exception": "shared-key-required-for-aci"
+      }
+    },
+    "deployContainerApp": { "value": true },
+    "deployLogicApp": { "value": true },
+    "deployServiceBus": { "value": true },
+    "deployStorageQueues": { "value": false },
+    "deployCosmosDb": { "value": true },
+    "deployOpenAi": { "value": true },
+    "deployPostgres": { "value": true },
+    "openAiDeploymentName": { "value": "gpt-5" },
+    "openAiModelName": { "value": "gpt-5" },
+    "openAiModelVersion": { "value": "2025-08-07" },
+    "openAiCapacity": { "value": 30 },
+    "cosmosDbDatabaseName": { "value": "vendor-email-response" },
+    "cosmosDbContainerName": { "value": "workflow-checkpoints" },
+    "containerImage": { "value": "ghcr.io/hemaverma/communicator:latest" },
+    "sharedMailboxAddress": { "value": "" },
+    "teamsGroupId": { "value": "" },
+    "teamsChannelId": { "value": "" },
+    "notificationRecipientEmail": { "value": "" }
+  }
+}

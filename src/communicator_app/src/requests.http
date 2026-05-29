@@ -1,0 +1,228 @@
+### Vendor Email Response App — local HTTP flows
+### Requires the VS Code REST Client extension (humao.rest-client).
+### Start the Functions host first:
+###   cd src/communicator_app/src
+###   func start
+###
+### The host accepts the architecture's `workflow-queue` envelopes on a single
+### route (`POST /api/workflow-queue`). The trigger dispatches on `eventType`:
+###
+###   * `email.received`     — start a new workflow (1st HITL pause: operations plan approval)
+###   * `approval.responded` — resume from a checkpoint
+###
+### The HTTP twin returns the envelopes that *would* have been published to
+### `hitl-queue` in the response body so you can copy `checkpointId` between
+### requests without a Service Bus emulator.
+###
+### Run order:
+###   1. Happy path: start → approve command → approve email
+###   2. Command rejection path: start → reject command → terminal completion
+###   3. Email rejection path: start → approve command → reject email → terminal completion
+###   4. Invalid approval path: start → invalid approvalStatus → error
+
+@host = http://localhost:7071
+@workflowInstanceId = next-communicator-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a01
+@commandRejectWorkflowInstanceId = next-communicator-command-reject-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a02
+@emailRejectWorkflowInstanceId = next-communicator-email-reject-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a03
+@invalidApprovalWorkflowInstanceId = next-communicator-invalid-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a04
+
+# NOTE: If you change message models (add/remove fields in workflow/messages/),
+# you must delete all files in checkpoints/ before re-running. Stale checkpoints
+# carry the old graph signature hash and will cause:
+#   "workflow paused with pending request_info but no checkpoint was persisted"
+# Alternatively, use a different workflowInstanceId to avoid collisions.
+#
+# NOTE: In production ENFORCE_WORKFLOW_IDEMPOTENCY=true rejects duplicate
+# workflowInstanceIds. Locally it defaults to false so you can re-run the same
+# ID without clearing checkpoints. If you enable it locally, change the
+# @workflowInstanceId above or run `task app:checkpoints:clear` between runs.
+
+### 1. Start workflow (email.received)
+# @name start
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "email.received",
+  "workflowInstanceId": "{{workflowInstanceId}}",
+  "internetMessageId": "<LOGIC_APP_INTERNET_MESSAGE_ID>@vendor.example",
+  "storagePrefix": "{{workflowInstanceId}}",
+  "checkpointId": null,
+  "receivedAt": "2026-05-07T16:49:51Z"
+}
+
+###
+# Captured from the start response; first hitl-queue envelope = VMS plan approval.
+@commandCheckpointId = {{start.response.body.result.hitl_messages[0].checkpointId}}
+
+### 2. Resume — approve VMS plan (1st pause; approvalType: command)
+# @name resumeCommand
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "approval.responded",
+  "workflowInstanceId": "{{workflowInstanceId}}",
+  "workflowPrefix": "{{workflowInstanceId}}",
+  "checkpointId": "{{commandCheckpointId}}",
+  "approvalType": "command",
+  "approvalStatus": "approved"
+}
+
+###
+# Captured from the command-approval resume; second hitl-queue envelope = draft review.
+@emailCheckpointId = {{resumeCommand.response.body.result.hitl_messages[0].checkpointId}}
+
+### 3. Resume — approve draft (2nd pause; approvalType: email) → workflow completes
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "approval.responded",
+  "workflowInstanceId": "{{workflowInstanceId}}",
+  "workflowPrefix": "{{workflowInstanceId}}",
+  "checkpointId": "{{emailCheckpointId}}",
+  "approvalType": "email",
+  "approvalStatus": "approved"
+}
+
+### 4. Start workflow for command rejection path
+# @name startCommandReject
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "email.received",
+  "workflowInstanceId": "{{commandRejectWorkflowInstanceId}}",
+  "internetMessageId": "<LOGIC_APP_INTERNET_MESSAGE_ID_COMMAND_REJECT>@vendor.example",
+  "storagePrefix": "{{commandRejectWorkflowInstanceId}}",
+  "checkpointId": null,
+  "receivedAt": "2026-05-07T16:49:51Z"
+}
+
+###
+@commandRejectCheckpointId = {{startCommandReject.response.body.result.hitl_messages[0].checkpointId}}
+
+### 5. Resume — reject VMS plan (1st pause; expect terminal completion and no second HITL message)
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "approval.responded",
+  "workflowInstanceId": "{{commandRejectWorkflowInstanceId}}",
+  "workflowPrefix": "{{commandRejectWorkflowInstanceId}}",
+  "checkpointId": "{{commandRejectCheckpointId}}",
+  "approvalType": "command",
+  "approvalStatus": "rejected"
+}
+
+### 6. Start workflow for email rejection path
+# @name startEmailReject
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "email.received",
+  "workflowInstanceId": "{{emailRejectWorkflowInstanceId}}",
+  "internetMessageId": "<LOGIC_APP_INTERNET_MESSAGE_ID_EMAIL_REJECT>@vendor.example",
+  "storagePrefix": "{{emailRejectWorkflowInstanceId}}",
+  "checkpointId": null,
+  "receivedAt": "2026-05-07T16:49:51Z"
+}
+
+###
+@emailRejectCommandCheckpointId = {{startEmailReject.response.body.result.hitl_messages[0].checkpointId}}
+
+### 7. Resume — approve VMS plan for email rejection path
+# @name resumeEmailRejectCommandApprove
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "approval.responded",
+  "workflowInstanceId": "{{emailRejectWorkflowInstanceId}}",
+  "workflowPrefix": "{{emailRejectWorkflowInstanceId}}",
+  "checkpointId": "{{emailRejectCommandCheckpointId}}",
+  "approvalType": "command",
+  "approvalStatus": "approved"
+}
+
+###
+@emailRejectCheckpointId = {{resumeEmailRejectCommandApprove.response.body.result.hitl_messages[0].checkpointId}}
+
+### 8. Resume — reject draft (2nd pause; expect terminal completion and no outbound send)
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "approval.responded",
+  "workflowInstanceId": "{{emailRejectWorkflowInstanceId}}",
+  "workflowPrefix": "{{emailRejectWorkflowInstanceId}}",
+  "checkpointId": "{{emailRejectCheckpointId}}",
+  "approvalType": "email",
+  "approvalStatus": "rejected"
+}
+
+### 9. Start workflow for invalid approval input path
+# @name startInvalidApproval
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "email.received",
+  "workflowInstanceId": "{{invalidApprovalWorkflowInstanceId}}",
+  "internetMessageId": "<LOGIC_APP_INTERNET_MESSAGE_ID_INVALID>@vendor.example",
+  "storagePrefix": "{{invalidApprovalWorkflowInstanceId}}",
+  "checkpointId": null,
+  "receivedAt": "2026-05-07T16:49:51Z"
+}
+
+###
+@invalidApprovalCheckpointId = {{startInvalidApproval.response.body.result.hitl_messages[0].checkpointId}}
+
+### 10. Resume — invalid command approvalStatus (expect error, not business-terminal completion)
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "approval.responded",
+  "workflowInstanceId": "{{invalidApprovalWorkflowInstanceId}}",
+  "workflowPrefix": "{{invalidApprovalWorkflowInstanceId}}",
+  "checkpointId": "{{invalidApprovalCheckpointId}}",
+  "approvalType": "command",
+  "approvalStatus": "maybe"
+}
+
+### 11. Idempotency check — replay a consumed checkpointId; expect status: already-resumed
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "approval.responded",
+  "workflowInstanceId": "{{workflowInstanceId}}",
+  "workflowPrefix": "{{workflowInstanceId}}",
+  "checkpointId": "{{commandCheckpointId}}",
+  "approvalType": "command",
+  "approvalStatus": "approved"
+}
+
+### 12. Error case — unknown eventType (expect 400)
+POST {{host}}/api/workflow-queue
+Content-Type: application/json
+
+{
+  "queueName": "workflow-queue",
+  "eventType": "unknown.thing",
+  "workflowInstanceId": "{{workflowInstanceId}}"
+}

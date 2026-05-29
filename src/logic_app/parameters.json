@@ -1,0 +1,18 @@
+{
+    "sharedMailboxAddress": {
+        "type": "String",
+        "value": "@appsetting('SHARED_MAILBOX_ADDRESS')"
+    },
+    "teamsGroupId": {
+        "type": "String",
+        "value": "@appsetting('TEAMS_GROUP_ID')"
+    },
+    "teamsChannelId": {
+        "type": "String",
+        "value": "@appsetting('TEAMS_CHANNEL_ID')"
+    },
+    "notificationRecipientEmail": {
+        "type": "String",
+        "value": "@appsetting('NOTIFICATION_RECIPIENT_EMAIL')"
+    }
+}

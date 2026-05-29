@@ -1,0 +1,85 @@
+name: Deploy Application Code
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/communicator_app/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      skip_container:
+        description: 'Skip container image build'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+  packages: write
+
+env:
+  RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+  CONTAINER_APP_NAME: ${{ vars.CONTAINER_APP_NAME }}
+
+jobs:
+  build-and-deploy-container:
+    name: Build & Deploy Container Image
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_container }}
+    environment: ${{ inputs.environment || 'dev' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Determine registry
+        id: registry
+        run: |
+          echo "login_server=ghcr.io" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${{ github.repository_owner }}/communicator:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "image_latest=ghcr.io/${{ github.repository_owner }}/communicator:latest" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push container image
+        run: |
+          IMAGE="${{ steps.registry.outputs.image }}"
+          IMAGE_LATEST="${{ steps.registry.outputs.image_latest }}"
+          echo "Building image: ${IMAGE}"
+          docker build \
+            -t "${IMAGE}" \
+            -t "${IMAGE_LATEST}" \
+            -f "src/communicator_app/Dockerfile" \
+            "src/communicator_app/"
+          docker push "${IMAGE}"
+          docker push "${IMAGE_LATEST}"
+          echo "Image pushed: ${IMAGE}"
+
+      - name: Update Container App
+        run: |
+          echo "Updating Container App (${{ env.CONTAINER_APP_NAME }}) with image: ${{ steps.registry.outputs.image_latest }}"
+          az containerapp update \
+            --name "${{ env.CONTAINER_APP_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --image "${{ steps.registry.outputs.image_latest }}"

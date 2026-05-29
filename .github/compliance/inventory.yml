@@ -1,0 +1,6 @@
+inventory:
+- source: DirectOwners
+  items:
+  - id: msetayesh@microsoft.com
+  - id: kehueb@microsoft.com
+  isProduction: false

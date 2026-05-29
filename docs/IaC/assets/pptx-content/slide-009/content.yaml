@@ -1,0 +1,110 @@
+slide: 9
+title: "NAT Gateway vs Azure Firewall"
+section: "Decisions"
+layout: "content"
+
+elements:
+  - type: shape
+    shape: rectangle
+    left: 0
+    top: 0
+    width: 13.333
+    height: 0.08
+    fill: "#0078D4"
+
+  - type: textbox
+    left: 0.8
+    top: 0.4
+    width: 10.0
+    height: 0.8
+    text: "NAT Gateway vs Azure Firewall"
+    font: "Segoe UI"
+    font_size: 32
+    font_color: "#1A1A2E"
+    font_bold: true
+    alignment: left
+
+  - type: table
+    left: 0.8
+    top: 1.5
+    width: 11.5
+    height: 3.8
+    columns:
+      - width: 3.0
+      - width: 2.8
+      - width: 2.8
+      - width: 2.9
+    rows:
+      - cells:
+          - text: "Criteria"
+            font_bold: true
+            fill: "#0078D4"
+            font_color: "#F8F8FC"
+          - text: "NAT Gateway"
+            font_bold: true
+            fill: "#0078D4"
+            font_color: "#F8F8FC"
+          - text: "Firewall Standard"
+            font_bold: true
+            fill: "#0078D4"
+            font_color: "#F8F8FC"
+          - text: "Firewall Basic"
+            font_bold: true
+            fill: "#0078D4"
+            font_color: "#F8F8FC"
+      - cells:
+          - text: "Monthly Cost"
+            font_bold: true
+          - text: "$32/mo"
+            font_color: "#10B981"
+          - text: "$912/mo"
+            font_color: "#EF4444"
+          - text: "$252/mo"
+            font_color: "#F59E0B"
+      - cells:
+          - text: "FQDN Filtering"
+            font_bold: true
+          - text: "No (NSGs only)"
+          - text: "Yes"
+          - text: "Yes"
+      - cells:
+          - text: "TLS Inspection"
+            font_bold: true
+          - text: "No"
+          - text: "Yes"
+          - text: "No"
+      - cells:
+          - text: "Complexity"
+            font_bold: true
+          - text: "Low"
+            font_color: "#10B981"
+          - text: "High"
+            font_color: "#EF4444"
+          - text: "Medium"
+            font_color: "#F59E0B"
+      - cells:
+          - text: "Use Case Fit"
+            font_bold: true
+          - text: "PoC / Internal"
+            font_color: "#10B981"
+          - text: "Enterprise / Regulated"
+          - text: "Mid-tier"
+    first_row: true
+    horz_banding: true
+
+  - type: card
+    left: 0.8
+    top: 5.6
+    width: 11.5
+    height: 1.2
+    title: "Decision"
+    title_color: "#1A1A2E"
+    title_size: 14
+    title_bold: true
+    accent_bar: true
+    accent_color: "#10B981"
+    content:
+      - bullet: "NAT Gateway selected - 96.5% cost savings vs Firewall Standard"
+        color: "#10B981"
+      - bullet: "NSGs provide adequate boundary control for this workload"
+        color: "#4B5563"

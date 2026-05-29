@@ -1,0 +1,57 @@
+name: Deploy Logic App Workflows
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/logic_app/**'
+  workflow_dispatch:
+    inputs:
+      resource_group:
+        description: 'Azure Resource Group (overrides repo variable)'
+        required: false
+        type: string
+      logic_app_name:
+        description: 'Logic App name (overrides repo variable)'
+        required: false
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RESOURCE_GROUP: ${{ inputs.resource_group || vars.AZURE_RESOURCE_GROUP }}
+  LOGIC_APP_NAME: ${{ inputs.logic_app_name || vars.LOGIC_APP_NAME }}
+
+jobs:
+  sync-logic-app:
+    name: Sync Logic App Workflows
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'dev' }}
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validate inputs
+        run: |
+          if [[ -z "${{ env.RESOURCE_GROUP }}" ]]; then
+            echo "::error::RESOURCE_GROUP not set. Configure vars.AZURE_RESOURCE_GROUP or pass via workflow_dispatch."
+            exit 1
+          fi
+          if [[ -z "${{ env.LOGIC_APP_NAME }}" ]]; then
+            echo "::error::LOGIC_APP_NAME not set. Configure vars.LOGIC_APP_NAME or pass via workflow_dispatch."
+            exit 1
+          fi
+
+      - name: Trigger Deployment Center Sync
+        run: |
+          echo "Triggering Deployment Center sync for Logic App: ${{ env.LOGIC_APP_NAME }}"
+          az webapp deployment source sync \
+            --name "${{ env.LOGIC_APP_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}"
+          echo "Sync triggered successfully. Kudu will pull latest from GitHub."

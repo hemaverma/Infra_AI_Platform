@@ -1,0 +1,15 @@
+{
+  "analyzers": {
+    "core": {
+      "rules": {
+        "no-hardcoded-env-urls": { "level": "warning" },
+        "no-hardcoded-location": { "level": "warning" },
+        "prefer-interpolation": { "level": "warning" },
+        "secure-params-in-nested-deploy": { "level": "error" },
+        "use-resource-symbol-reference": { "level": "warning" },
+        "no-unused-params": { "level": "warning" },
+        "no-unused-vars": { "level": "warning" }
+      }
+    }
+  }
+}

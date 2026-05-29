@@ -1,0 +1,2 @@
+[config]
+command = bash -c "shopt -s dotglob && rm -rf /home/site/wwwroot/* && cp -r src/logic_app/* /home/site/wwwroot/"

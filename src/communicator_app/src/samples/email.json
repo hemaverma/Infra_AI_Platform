@@ -1,0 +1,11 @@
+{
+  "internetMessageId": "<LOGIC_APP_INTERNET_MESSAGE_ID>@vendor.example",
+  "workflowInstanceId": "next-communicator-08dd4a3e-5b07-4e1a-9b3f-1c6d2e8f9a01",
+  "receivedAt": "2026-05-07T16:49:51Z",
+  "senderEmail": "noreply@vendorco.example",
+  "subject": "Operator Networks Inc. Planned Maintenance Notification - Ticket VND-0001",
+  "body": "Subscriber,\n\nYou have been identified as a Subscriber for Operator Networks Inc. planned circuit maintenance notifications. This is a courtesy notification of planned maintenance on Operator Networks Inc. inter-office facilities that must be performed on the date and time indicated. If you have questions, or would like to opt out from receiving these notifications, please contact your Operator Networks Inc. service manager.\n\nTicket #: VND-0001\nStart Date & Time: 05/15/26 05:01:00 UTC\nEnd Date & Time: 05/15/26 11:00:00 UTC\nLocation of Work: Sample City, ST\nSummary: Routine maintenance window. Affected circuits: SYN-001, SYN-002, SYN-003.\nCustomer Impact: Expected outage time in mins = 06-15\n\nIf you experience a problem after this work is complete, please open a trouble ticket with your assigned service contact.\n\nThank you,\n\nOperator Networks Inc.\n\nThis is an automated system generated message. Please do not reply.",
+  "attachments": [
+    "circuits.csv"
+  ]
+}

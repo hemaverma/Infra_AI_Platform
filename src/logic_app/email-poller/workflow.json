@@ -1,0 +1,217 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "parameters": {
+            "sharedMailboxAddress": {
+                "type": "String",
+                "defaultValue": "",
+                "metadata": {
+                    "description": "The shared mailbox address to monitor for incoming emails"
+                }
+            },
+            "storageAccountName": {
+                "type": "String",
+                "defaultValue": "",
+                "metadata": {
+                    "description": "Azure Storage account name for email staging and queues"
+                }
+            },
+            "storageContainerName": {
+                "type": "String",
+                "defaultValue": "email-staging",
+                "metadata": {
+                    "description": "Blob container name for email staging"
+                }
+            },
+            "workflowQueueName": {
+                "type": "String",
+                "defaultValue": "workflow-queue",
+                "metadata": {
+                    "description": "Queue name for workflow events"
+                }
+            },
+            "workflowInstancePrefix": {
+                "type": "String",
+                "defaultValue": "workflow-next-",
+                "metadata": {
+                    "description": "Prefix for workflow instance IDs"
+                }
+            }
+        },
+        "actions": {
+            "Generate_Metadata": {
+                "type": "Compose",
+                "inputs": {
+                    "workflowInstanceId": "@{concat(parameters('workflowInstancePrefix'), formatDateTime(convertTimeZone(utcNow(), 'UTC', 'Pacific Standard Time'), 'yyyy-MM-dd-HH-mm-ss'), '-', guid())}",
+                    "queueName": "@{parameters('workflowQueueName')}",
+                    "storageContainer": "@{parameters('storageContainerName')}"
+                },
+                "runAfter": {}
+            },
+            "Get_Attachment_Names": {
+                "type": "Select",
+                "inputs": {
+                    "from": "@coalesce(triggerBody()?['attachments'], createArray())",
+                    "select": "@item()?['name']"
+                },
+                "runAfter": {
+                    "Generate_Metadata": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Create_Email_JSON": {
+                "type": "Compose",
+                "inputs": {
+                    "internetMessageId": "@{triggerBody()?['internetMessageId']}",
+                    "workflowInstanceId": "@{outputs('Generate_Metadata')?['workflowInstanceId']}",
+                    "receivedAt": "@{triggerBody()?['receivedDateTime']}",
+                    "senderEmail": "@{triggerBody()?['from']}",
+                    "subject": "@{triggerBody()?['subject']}",
+                    "body": "@{triggerBody()?['body']}",
+                    "attachments": "@body('Get_Attachment_Names')"
+                },
+                "runAfter": {
+                    "Get_Attachment_Names": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Create_blob_(V2)": {
+                "type": "ApiConnection",
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "referenceName": "azureblob"
+                        }
+                    },
+                    "method": "post",
+                    "body": "@outputs('Create_Email_JSON')",
+                    "headers": {
+                        "ReadFileMetadataFromServer": true
+                    },
+                    "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent(parameters('storageAccountName')))}/files",
+                    "queries": {
+                        "folderPath": "/@{outputs('Generate_Metadata')?['storageContainer']}/@{outputs('Generate_Metadata')?['workflowInstanceId']}",
+                        "name": "email.json",
+                        "queryParametersSingleEncoded": true
+                    }
+                },
+                "runAfter": {
+                    "Create_Email_JSON": [
+                        "Succeeded"
+                    ]
+                },
+                "runtimeConfiguration": {
+                    "contentTransfer": {
+                        "transferMode": "Chunked"
+                    }
+                }
+            },
+            "Upload_Attachments": {
+                "type": "Foreach",
+                "foreach": "@coalesce(triggerBody()?['attachments'], createArray())",
+                "actions": {
+                    "Upload_Attachment_Blob": {
+                        "type": "ApiConnection",
+                        "inputs": {
+                            "host": {
+                                "connection": {
+                                    "referenceName": "azureblob"
+                                }
+                            },
+                            "method": "post",
+                            "body": "@base64ToBinary(items('Upload_Attachments')?['contentBytes'])",
+                            "headers": {
+                                "ReadFileMetadataFromServer": true
+                            },
+                            "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent(parameters('storageAccountName')))}/files",
+                            "queries": {
+                                "folderPath": "/@{outputs('Generate_Metadata')?['storageContainer']}/@{outputs('Generate_Metadata')?['workflowInstanceId']}/attachments",
+                                "name": "@{items('Upload_Attachments')?['name']}",
+                                "queryParametersSingleEncoded": true
+                            }
+                        },
+                        "runtimeConfiguration": {
+                            "contentTransfer": {
+                                "transferMode": "Chunked"
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Create_blob_(V2)": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Build_Queue_Message": {
+                "type": "Compose",
+                "inputs": {
+                    "queueName": "@{outputs('Generate_Metadata')?['queueName']}",
+                    "eventType": "email.received",
+                    "internetMessageId": "@{triggerBody()?['internetMessageId']}",
+                    "workflowInstanceId": "@{outputs('Generate_Metadata')?['workflowInstanceId']}",
+                    "storagePrefix": "@{outputs('Generate_Metadata')?['workflowInstanceId']}",
+                    "checkpointId": null,
+                    "receivedAt": "@{triggerBody()?['receivedDateTime']}"
+                },
+                "runAfter": {
+                    "Upload_Attachments": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Send_to_Service_Bus": {
+                "type": "ServiceProvider",
+                "inputs": {
+                    "parameters": {
+                        "entityName": "@{parameters('workflowQueueName')}",
+                        "message": {
+                            "contentData": "@{string(outputs('Build_Queue_Message'))}"
+                        }
+                    },
+                    "serviceProviderConfiguration": {
+                        "connectionName": "ServiceBusConnection",
+                        "operationId": "sendMessage",
+                        "serviceProviderId": "/serviceProviders/serviceBus"
+                    }
+                },
+                "runAfter": {
+                    "Build_Queue_Message": [
+                        "Succeeded"
+                    ]
+                }
+            }
+        },
+        "outputs": {},
+        "triggers": {
+            "When_a_new_email_arrives_in_a_shared_mailbox_(V2)": {
+                "type": "ApiConnection",
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "referenceName": "office365"
+                        }
+                    },
+                    "method": "get",
+                    "path": "/v2/SharedMailbox/Mail/OnNewEmail",
+                    "queries": {
+                        "mailboxAddress": "@{parameters('sharedMailboxAddress')}",
+                        "importance": "Any",
+                        "hasAttachments": false,
+                        "includeAttachments": true,
+                        "folderId": "Inbox"
+                    }
+                },
+                "recurrence": {
+                    "interval": 1,
+                    "frequency": "Minute"
+                },
+                "splitOn": "@triggerBody()?['value']"
+            }
+        }
+    },
+    "kind": "stateful"
+}

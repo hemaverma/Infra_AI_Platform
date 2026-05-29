@@ -1,0 +1,82 @@
+slide: 15
+title: "Next Steps"
+section: "Roadmap"
+layout: "content"
+
+elements:
+  - type: shape
+    shape: rectangle
+    left: 0
+    top: 0
+    width: 13.333
+    height: 0.08
+    fill: "#0078D4"
+
+  - type: textbox
+    left: 0.8
+    top: 0.4
+    width: 10.0
+    height: 0.8
+    text: "Next Steps"
+    font: "Segoe UI"
+    font_size: 32
+    font_color: "#1A1A2E"
+    font_bold: true
+    alignment: left
+
+  - type: card
+    left: 0.8
+    top: 1.5
+    width: 5.5
+    height: 3.0
+    title: "Short-Term"
+    title_color: "#1A1A2E"
+    title_size: 15
+    title_bold: true
+    accent_bar: true
+    accent_color: "#10B981"
+    content:
+      - bullet: "Complete Function App integration"
+        color: "#4B5563"
+      - bullet: "Add Azure Firewall if FQDN filtering required"
+        color: "#4B5563"
+      - bullet: "Update .drawio architecture diagrams"
+        color: "#4B5563"
+
+  - type: card
+    left: 6.8
+    top: 1.5
+    width: 5.5
+    height: 3.0
+    title: "Mid-Term"
+    title_color: "#1A1A2E"
+    title_size: 15
+    title_bold: true
+    accent_bar: true
+    accent_color: "#0078D4"
+    content:
+      - bullet: "Implement disaster recovery (multi-region)"
+        color: "#4B5563"
+      - bullet: "Add automated integration testing"
+        color: "#4B5563"
+      - bullet: "Self-hosted runner for VNet-internal tests"
+        color: "#4B5563"
+
+  - type: card
+    left: 0.8
+    top: 4.9
+    width: 11.5
+    height: 1.8
+    title: "Future Considerations"
+    title_color: "#1A1A2E"
+    title_size: 15
+    title_bold: true
+    accent_bar: true
+    accent_color: "#F59E0B"
+    content:
+      - bullet: "Migrate to GitHub-hosted runners with VNet gateway (when GA)"
+        color: "#4B5563"
+      - bullet: "Evaluate Azure Container Apps Jobs for batch workloads"
+        color: "#4B5563"
+      - bullet: "Add Terraform alternative for teams preferring HCL"
+        color: "#4B5563"

@@ -1,0 +1,58 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+
+    "_comment_servicebus": "Service Bus and Storage Queue now share WorkflowQueueName and HitlQueueName. Service Bus triggers are disabled by default while network setup is in progress. Set ENABLE_SERVICEBUS_TRIGGERS=true and provide ServiceBusConnection when you want the Service Bus transport active.",
+    "ENABLE_SERVICEBUS_TRIGGERS": "false",
+    "ServiceBusConnection": "",
+    "WorkflowQueueName": "workflow-queue",
+    "HitlQueueName": "hitl-queue",
+
+    "_comment_storage_queue": "Storage Queue transport is enabled by default and reuses WorkflowQueueName and HitlQueueName. Use StorageQueueConnection for connection-string or Azurite auth. For managed identity, clear StorageQueueConnection and set StorageQueueConnection__queueServiceUri instead.",
+    "ENABLE_STORAGE_QUEUE_TRIGGERS": "true",
+    "StorageQueueConnection__queueServiceUri": "https://<your-storage-account>.queue.core.windows.net",
+    "_comment_storage_queue_identity": "For user-assigned managed identity, set StorageQueueConnection__credential=managedidentity and StorageQueueConnection__clientID=<user-assigned-managed-identity-client-id>. Leave both blank for connection-string auth or system-assigned managed identity.",
+
+    "_comment_http_test": "Set ENABLE_HTTP_TEST_TRIGGERS=true (default) to register the /api/workflow-queue HTTP twin for local end-to-end testing without a Service Bus emulator. Production sets it to false (STORY-24).",
+    "ENABLE_HTTP_TEST_TRIGGERS": "true",
+
+        "_comment_idempotency": "Set ENFORCE_WORKFLOW_IDEMPOTENCY=true in production to reject duplicate workflowInstanceIds that already have checkpoints. Leave false locally so you can re-run the same ID without clearing checkpoints.",
+    "ENFORCE_WORKFLOW_IDEMPOTENCY": "false",
+
+    "_comment_auth": "AUTH_MODE=azurecli forces AzureCliCredential (run `az login` first). Leave AUTH_MODE unset to use DefaultAzureCredential (managed identity in Azure, az-cli locally as a fallback).",
+    "AUTH_MODE": "azurecli",
+
+    "_comment_llm": "Set ENABLE_AGENT_EMAIL_DRAFT=true to enable live Azure OpenAI calls in the draft reply executor. Set ENABLE_AGENT_EXTRACTION=true to enable live agent calls in the field extraction executor. When false, both fall back to deterministic stubs. Set ENABLE_LLM_DEBUG_LOGS=true to log LLM instructions, rendered prompts, and structured inputs for debugging. Use LLM_DEBUG_LOG_MAX_CHARS to cap verbose log bodies. These debug logs can contain email content, so leave them off by default. AZURE_OPENAI_MODEL is your deployment name (e.g. 'gpt-4o'), not the model family. AZURE_OPENAI_ENDPOINT should be the Azure OpenAI resource root. AZURE_OPENAI_API_VERSION is optional and defaults to v1.",
+    "ENABLE_AGENT_EMAIL_DRAFT": "false",
+    "ENABLE_AGENT_EXTRACTION": "false",
+    "ENABLE_LLM_DEBUG_LOGS": "false",
+    "LLM_DEBUG_LOG_MAX_CHARS": "4000",
+    "ENABLE_EXTRACTION_CANDIDATE_HINTS": "false",
+    "EXTRACTION_PROMPT_EMAIL_FORMAT": "markdown",
+    "AZURE_OPENAI_ENDPOINT": "https://<your-aoai-resource>.openai.azure.com/",
+    "AZURE_OPENAI_MODEL": "<your-deployment-name>",
+    "AZURE_OPENAI_API_VERSION": "v1",
+
+    "_comment_prompty": "Set EXTRACTION_PROMPTY_PATH to override the default checked-in extraction prompt asset for local prompt experimentation. Set ENABLE_EXTRACTION_CANDIDATE_HINTS=true to inject deterministic candidate hints into the extraction prompt; leave it false to omit them by default. Set EXTRACTION_PROMPT_EMAIL_FORMAT to markdown or xml; markdown is the default. Leave EXTRACTION_PROMPTY_PATH blank to use src/workflow/prompts/field_extraction.prompty.",
+    "EXTRACTION_PROMPTY_PATH": "",
+
+    "_comment_email_blob": "Set EMAIL_BLOB_ACCOUNT_URL to the Azure Blob endpoint that stores staged email payloads, for example https://<account>.blob.core.windows.net. EmailIngestExecutor downloads <container>/<storage_prefix>/email.json and carries staged attachment blob paths forward; PreprocessExecutor downloads those attachments from <container>/<storage_prefix>/attachments/. EMAIL_BLOB_CONTAINER defaults to 'email-staging' per architecture.md §3.4.",
+    "EMAIL_BLOB_ACCOUNT_URL": "https://<your-storage-account>.blob.core.windows.net",
+    "EMAIL_BLOB_CONTAINER": "email-staging",
+
+    "_comment_email_attachment_filter": "Comma-separated extension allow-list applied in EmailIngestExecutor before download (no leading dot, case-insensitive). Default 'csv' matches what the current FieldExtractionExecutor handles. Set to '*' to disable filtering and accept every attachment.",
+    "EMAIL_ALLOWED_ATTACHMENT_EXTENSIONS": "csv",
+
+    "_comment_email_sender_filter": "Comma-separated sender-domain allow-list applied in EmailValidateExecutor (no leading @, case-insensitive). Set to '*' or leave unset to allow all senders.",
+    "EMAIL_ALLOWED_SENDER_DOMAINS": "*",
+
+    "_comment_checkpoint": "Set VENDOR_CHECKPOINT_PROVIDER=cosmos to swap FileCheckpointStorage for CosmosCheckpointStorage. Leave unset or 'file' to keep ./checkpoints/. When 'cosmos', AZURE_COSMOS_ENDPOINT/DATABASE_NAME/CONTAINER_NAME are required and auth is RBAC-only via AzureCliCredential or DefaultAzureCredential depending on AUTH_MODE.",
+    "VENDOR_CHECKPOINT_PROVIDER": "file",
+    "AZURE_COSMOS_ENDPOINT": "https://<your-cosmos-account>.documents.azure.com:443/",
+    "AZURE_COSMOS_DATABASE_NAME": "vendor-email-response",
+    "AZURE_COSMOS_CONTAINER_NAME": "workflow-checkpoints"
+
+  }
+}

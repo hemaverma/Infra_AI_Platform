@@ -1,0 +1,86 @@
+slide: 5
+title: "Security Model"
+section: "Security"
+layout: "content"
+
+elements:
+  - type: shape
+    shape: rectangle
+    left: 0
+    top: 0
+    width: 13.333
+    height: 0.08
+    fill: "#0078D4"
+
+  - type: textbox
+    left: 0.8
+    top: 0.4
+    width: 10.0
+    height: 0.8
+    text: "Security Model"
+    font: "Segoe UI"
+    font_size: 32
+    font_color: "#1A1A2E"
+    font_bold: true
+    alignment: left
+
+  - type: card
+    left: 0.8
+    top: 1.5
+    width: 5.5
+    height: 2.2
+    title: "Network Isolation"
+    title_color: "#1A1A2E"
+    title_size: 15
+    title_bold: true
+    accent_bar: true
+    accent_color: "#0078D4"
+    content:
+      - bullet: "Private Endpoints (10+ services)"
+        color: "#4B5563"
+      - bullet: "NSGs with deny-all-other (5 NSGs)"
+        color: "#4B5563"
+      - bullet: "DNS Private Resolver for VPN clients"
+        color: "#4B5563"
+
+  - type: card
+    left: 6.8
+    top: 1.5
+    width: 5.5
+    height: 2.2
+    title: "Identity & Access"
+    title_color: "#1A1A2E"
+    title_size: 15
+    title_bold: true
+    accent_bar: true
+    accent_color: "#10B981"
+    content:
+      - bullet: "User Assigned Managed Identity (zero secrets)"
+        color: "#4B5563"
+      - bullet: "OIDC federation for CI/CD"
+        color: "#4B5563"
+      - bullet: "P2S VPN with Entra ID"
+        color: "#4B5563"
+
+  - type: card
+    left: 0.8
+    top: 4.1
+    width: 11.5
+    height: 2.6
+    title: "Defense Layers"
+    title_color: "#1A1A2E"
+    title_size: 15
+    title_bold: true
+    accent_bar: true
+    accent_color: "#F59E0B"
+    content:
+      - bullet: "Layer 1: VNet boundary - all resources in private subnets"
+        color: "#4B5563"
+      - bullet: "Layer 2: NSG rules - explicit allow per subnet pair, deny-all-other"
+        color: "#4B5563"
+      - bullet: "Layer 3: Private Endpoints - no public IP exposure for data services"
+        color: "#4B5563"
+      - bullet: "Layer 4: Managed Identity - no secrets stored, no rotation needed"
+        color: "#4B5563"
+      - bullet: "Layer 5: Entra ID - VPN and CI/CD authentication via federation"
+        color: "#4B5563"

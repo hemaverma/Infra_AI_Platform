@@ -1,0 +1,24 @@
+version: 1
+
+experiment:
+  # Allowed: markdown, xml
+  prompt_email_format: markdown
+  # Allowed: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_level: INFO
+  include_candidate_hints: false
+
+extraction:
+  retry_attempts: 3
+  retry_delay_seconds: 1.0
+  # Override via MODEL_DEPLOYMENT_NAME env var at runtime (resolved by Python config loader)
+  model: gpt-5.4
+
+data:
+  manifest_path: src/experimentation/data/blob_seed_samples/manifest.json
+  ground_truth_glob: src/experimentation/data/blob_seed_samples/**/ground_truth.json
+
+output:
+  prefill_dir: src/experimentation/output/ground_truth/prefill
+  runs_dir: src/experimentation/output/ground_truth/runs
+  search_root: src/experimentation/output
+  summaries_dir: src/experimentation/output/ground_truth/summaries
