@@ -1,0 +1,46 @@
+#cloud-config
+# ============================================================================
+# cloud-init-runner.yml
+# Purpose: Bootstraps prerequisites for a self-hosted GitHub Actions runner VM
+#          deployed into the private VNet (snet-reserved). Runner registration
+#          itself is performed by the CustomScript extension which downloads and
+#          executes setup-runner.sh (see github-runner.bicep).
+# Note:    This VM path only deploys when a runnerToken is provided. The private
+#          variant normally uses NAT Gateway + Deployment Center (no runner VM).
+# ============================================================================
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - curl
+  - jq
+  - git
+  - ca-certificates
+  - apt-transport-https
+  - gnupg
+  - lsb-release
+
+write_files:
+  - path: /etc/profile.d/runner-env.sh
+    permissions: '0644'
+    content: |
+      # Placeholder environment for the self-hosted runner
+      export RUNNER_ALLOW_RUNASROOT=0
+
+runcmd:
+  # Ensure the setup script drop location exists with sane permissions
+  - mkdir -p /opt
+  - chmod 0755 /opt
+  # Install Docker CE (used by build/publish workflows on the runner)
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+  - apt-get update -y
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - systemctl enable --now docker
+  # Allow the admin user to run docker without sudo
+  - usermod -aG docker azureuser
+
+final_message: "cloud-init runner bootstrap complete after $UPTIME seconds"
