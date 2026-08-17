@@ -1,7 +1,7 @@
 ---
 title: NExT Infrastructure Deployment
 description: Deployment overview for the NExT dual-variant infrastructure covering public and private architectures, service inventory, and pipeline scripts.
-ms.date: 2026-06-14
+ms.date: 2026-08-11
 ms.topic: overview
 ---
 
@@ -27,6 +27,33 @@ All resources follow the pattern `{baseName}{uniquePrefix}`:
 | Result | `next51` | Used as prefix for all resource names (e.g., `next51-communicator`, `next51-keyvault`) |
 
 Pass these values via `--base-name` and `--unique-prefix` flags in the deployment scripts.
+
+## Prerequisites
+
+Private network deployments create Standard public IP addresses for the NAT and
+VPN gateways. The subscription must have the
+`Microsoft.Network/AllowBringYourOwnPublicIpAddress` feature registered before
+Phase 1 runs.
+
+```bash
+az feature register \
+  --namespace Microsoft.Network \
+  --name AllowBringYourOwnPublicIpAddress
+
+az provider register \
+  --namespace Microsoft.Network \
+  --wait
+
+az feature show \
+  --namespace Microsoft.Network \
+  --name AllowBringYourOwnPublicIpAddress \
+  --query properties.state \
+  --output tsv
+```
+
+Continue only after the final command returns `Registered`. Registering the
+feature requires subscription-level permission and can take several minutes to
+propagate.
 
 ## Quick Start
 

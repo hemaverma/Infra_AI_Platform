@@ -1,7 +1,7 @@
 ---
 title: "NExT IaC Private Variant Deployment Guide"
 description: "Private Variant Deployment Guide for VNet-isolated infrastructure with phased provisioning, VPN-based access, and NAT Gateway outbound connectivity"
-ms.date: 2026-06-14
+ms.date: 2026-08-11
 ms.topic: how-to
 ---
 
@@ -60,6 +60,33 @@ This directory consolidates all private-variant deployment artifacts:
 | Azure VPN Enterprise App | `<vpn>` (admin-consented) |
 | Azure VPN Client | [Microsoft Store](https://apps.microsoft.com/detail/9NP355QT2SQB) |
 | PostgreSQL Password | Set in `.env` as `postgreSQL_Password` |
+| Public IP Feature | `Microsoft.Network/AllowBringYourOwnPublicIpAddress` registered |
+
+### Register the Public IP Feature
+
+Phase 1 creates Standard public IP addresses for the NAT gateway and VPN
+gateway. Register the required subscription feature and refresh the
+`Microsoft.Network` provider before deploying:
+
+```bash
+az feature register \
+  --namespace Microsoft.Network \
+  --name AllowBringYourOwnPublicIpAddress
+
+az provider register \
+  --namespace Microsoft.Network \
+  --wait
+
+az feature show \
+  --namespace Microsoft.Network \
+  --name AllowBringYourOwnPublicIpAddress \
+  --query properties.state \
+  --output tsv
+```
+
+Do not start Phase 1 until the feature state is `Registered`. If it is missing,
+public IP creation fails with `SubscriptionNotRegisteredForFeature` and names
+`Microsoft.Network/AllowBringYourOwnPublicIpAddress` in the error message.
 
 ---
 

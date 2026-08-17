@@ -2,14 +2,14 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "baseName": { "value": "next" },
+    "baseName": { "value": "att_nf" },
     "uniquePrefix": { "value": "" },
     "location": { "value": "westus3" },
     "tags": {
       "value": {
-        "project": "NExT",
+        "project": "att",
         "environment": "poc",
-        "team": "next",
+        "team": "att_nf",
         "SecurityControl": "Ignore",
         "security-exception": "shared-key-required-for-aci"
       }

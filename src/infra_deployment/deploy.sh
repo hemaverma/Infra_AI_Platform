@@ -289,6 +289,16 @@ fi
 [[ "$VARIANT" != "public" && "$VARIANT" != "private" ]] && err "Variant must be 'public' or 'private'"
 [[ "$PHASE" != "all" && "$PHASE" != "network" && "$PHASE" != "services" ]] && \
     err "Phase must be 'all', 'network', or 'services'"
+
+if [[ "$VARIANT" == "private" && "$PHASE" != "services" ]]; then
+    NETWORK_FEATURE_STATE=$(az feature show \
+        --namespace Microsoft.Network \
+        --name AllowBringYourOwnPublicIpAddress \
+        --query properties.state -o tsv 2>/dev/null || echo "NotRegistered")
+    if [[ "$NETWORK_FEATURE_STATE" != "Registered" ]]; then
+        err "Microsoft.Network/AllowBringYourOwnPublicIpAddress must be registered. Run: az feature register --namespace Microsoft.Network --name AllowBringYourOwnPublicIpAddress && az provider register --namespace Microsoft.Network --wait"
+    fi
+fi
 success "Prerequisites OK"
 
 # --- Validate location against allowed regions ---
@@ -421,13 +431,47 @@ case "$PHASE" in
         ;;
 esac
 
+# ARM rejects parameters that are not declared by the selected phase template.
+# Filter the shared parameter file for phased deployments.
+DEPLOY_PARAMETERS_FILE="$PARAMETERS_FILE"
+FILTERED_PARAMETERS_FILE=""
+COMPILED_TEMPLATE_FILE=""
+if [[ "$PHASE" != "all" ]]; then
+    FILTERED_PARAMETERS_FILE=$(mktemp --suffix=.json)
+    COMPILED_TEMPLATE_FILE=$(mktemp --suffix=.json)
+    trap 'rm -f "$FILTERED_PARAMETERS_FILE" "$COMPILED_TEMPLATE_FILE"' EXIT
+
+    az bicep build --file "$TEMPLATE_FILE" --outfile "$COMPILED_TEMPLATE_FILE"
+    python3 - "$PARAMETERS_FILE" "$COMPILED_TEMPLATE_FILE" \
+        "$FILTERED_PARAMETERS_FILE" <<'PY'
+import json
+import pathlib
+import sys
+
+source_path = pathlib.Path(sys.argv[1])
+template_path = pathlib.Path(sys.argv[2])
+output_path = pathlib.Path(sys.argv[3])
+template = json.loads(template_path.read_text())
+source = json.loads(source_path.read_text())
+declared = set(template.get("parameters", {}))
+source["parameters"] = {
+        name: value
+        for name, value in source.get("parameters", {}).items()
+        if name in declared
+}
+output_path.write_text(json.dumps(source))
+PY
+
+    DEPLOY_PARAMETERS_FILE="$FILTERED_PARAMETERS_FILE"
+fi
+
 if [[ "$WHAT_IF" == "true" ]]; then
   warn "Running what-if analysis..."
   deploy_args=(
     deployment group what-if
     --resource-group "$RESOURCE_GROUP"
     --template-file "$TEMPLATE_FILE"
-    --parameters "$PARAMETERS_FILE"
+    --parameters "$DEPLOY_PARAMETERS_FILE"
     --parameters "baseName=$BASE_NAME"
     --parameters "uniquePrefix=${UNIQUE_PREFIX}"
     --parameters "location=${LOCATION}"
@@ -438,7 +482,7 @@ else
     deployment group create
     --resource-group "$RESOURCE_GROUP"
     --template-file "$TEMPLATE_FILE"
-    --parameters "$PARAMETERS_FILE"
+    --parameters "$DEPLOY_PARAMETERS_FILE"
     --parameters "baseName=$BASE_NAME"
     --parameters "uniquePrefix=${UNIQUE_PREFIX}"
     --parameters "location=${LOCATION}"
@@ -446,18 +490,21 @@ else
   )
 fi
 
-# Append Deployment Center parameters (githubRepo for Logic App source link)
-if [[ -n "$GITHUB_REPO" ]]; then
+# Append service and Deployment Center parameters only for templates that
+# include application services.
+if [[ "$PHASE" != "network" && -n "$GITHUB_REPO" ]]; then
   deploy_args+=(--parameters "githubRepo=${GITHUB_REPO}")
   info "Deployment Center will be configured for ${GITHUB_REPO} (manual sync)."
 fi
 
 # Append .env-driven operational parameters (override parameters.json defaults)
-[[ -n "$ENV_CONTAINER_IMAGE" ]]    && deploy_args+=(--parameters "containerImage=${ENV_CONTAINER_IMAGE}")
-[[ -n "$ENV_SHARED_MAILBOX" ]]     && deploy_args+=(--parameters "sharedMailboxAddress=${ENV_SHARED_MAILBOX}")
-[[ -n "$ENV_TEAMS_GROUP_ID" ]]     && deploy_args+=(--parameters "teamsGroupId=${ENV_TEAMS_GROUP_ID}")
-[[ -n "$ENV_TEAMS_CHANNEL_ID" ]]   && deploy_args+=(--parameters "teamsChannelId=${ENV_TEAMS_CHANNEL_ID}")
-[[ -n "$ENV_NOTIFICATION_EMAIL" ]] && deploy_args+=(--parameters "notificationRecipientEmail=${ENV_NOTIFICATION_EMAIL}")
+if [[ "$PHASE" != "network" ]]; then
+    [[ -n "$ENV_CONTAINER_IMAGE" ]]    && deploy_args+=(--parameters "containerImage=${ENV_CONTAINER_IMAGE}")
+    [[ -n "$ENV_SHARED_MAILBOX" ]]     && deploy_args+=(--parameters "sharedMailboxAddress=${ENV_SHARED_MAILBOX}")
+    [[ -n "$ENV_TEAMS_GROUP_ID" ]]     && deploy_args+=(--parameters "teamsGroupId=${ENV_TEAMS_GROUP_ID}")
+    [[ -n "$ENV_TEAMS_CHANNEL_ID" ]]   && deploy_args+=(--parameters "teamsChannelId=${ENV_TEAMS_CHANNEL_ID}")
+    [[ -n "$ENV_NOTIFICATION_EMAIL" ]] && deploy_args+=(--parameters "notificationRecipientEmail=${ENV_NOTIFICATION_EMAIL}")
+fi
 
 # --- Execute deployment ---
 run_deployment() {
@@ -529,6 +576,8 @@ if ! deployment_output=$(run_deployment); then
             err "Deployment failed"
         fi
     fi
+else
+    printf '%s\n' "$deployment_output"
 fi
 
 # --- Post-Deployment: Application Code ---
@@ -636,7 +685,7 @@ if [[ "$WHAT_IF" != "true" && "$PHASE" != "network" ]]; then
     success "Application code deployment complete."
 fi
 
-if [[ "$PHASE" == "network" ]]; then
+if [[ "$WHAT_IF" != "true" && "$PHASE" == "network" ]]; then
     printf "\n${GREEN}=== Phase 1 Complete ===${NC}\n"
     info "Generating VPN client profile..."
     VPN_PROFILE_URL=$(az network vnet-gateway vpn-client generate \
@@ -649,10 +698,14 @@ if [[ "$PHASE" == "network" ]]; then
         PROFILE_DIR="${SCRIPT_DIR}/private/vpn-client-profile"
         mkdir -p "$PROFILE_DIR"
         curl -sL "$VPN_PROFILE_URL" -o "$PROFILE_DIR/vpn-profile.zip"
-        unzip -o "$PROFILE_DIR/vpn-profile.zip" -d "$PROFILE_DIR"
+        unzip -o "$PROFILE_DIR/vpn-profile.zip" -d "$PROFILE_DIR" || true
         rm -f "$PROFILE_DIR/vpn-profile.zip"
-        success "VPN profile downloaded to infra_deployment/private/vpn-client-profile/"
-        info "Import AzureVPN/azurevpnconfig.xml into Azure VPN Client to connect."
+        if [[ -f "$PROFILE_DIR/AzureVPN/azurevpnconfig.xml" ]]; then
+            success "VPN profile downloaded to infra_deployment/private/vpn-client-profile/"
+            info "Import AzureVPN/azurevpnconfig.xml into Azure VPN Client to connect."
+        else
+            warn "VPN profile archive downloaded but extraction did not produce AzureVPN/azurevpnconfig.xml."
+        fi
     else
         warn "Could not generate VPN profile. VPN Gateway may still be provisioning."
         warn "Retry after VPN Gateway is fully provisioned (~30-45 min)."
@@ -679,4 +732,8 @@ if [[ "$PHASE" == "network" ]]; then
     warn "  2. Run: ./deploy.sh --phase services"
 fi
 
-success "Deployment completed successfully."
+if [[ "$WHAT_IF" == "true" ]]; then
+    success "What-if analysis completed successfully."
+else
+    success "Deployment completed successfully."
+fi
